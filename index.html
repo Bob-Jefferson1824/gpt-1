@@ -82,26 +82,32 @@ function applyCarTerrain(car){
  car.group.quaternion.setFromRotationMatrix(basis);
  car.group.position.y=terrainHeight(x,z)+.26;
 }
-const terrainGeo=new THREE.PlaneGeometry(900,900,120,120);
+const terrainGeo=new THREE.PlaneGeometry(900,900,180,180);
 terrainGeo.rotateX(-Math.PI/2);
-const terrainPos=terrainGeo.attributes.position;
+const terrainPos=terrainGeo.attributes.position,terrainColors=[];
 for(let i=0;i<terrainPos.count;i++){
- const x=terrainPos.getX(i),z=terrainPos.getZ(i);
- terrainPos.setY(i,terrainHeight(x,z)-.2);
+ const x=terrainPos.getX(i),z=terrainPos.getZ(i),h=terrainHeight(x,z);
+ terrainPos.setY(i,h-.2);
+ const variation=Math.sin(x*.047+z*.031)*.035+Math.sin(x*.013-z*.022)*.045;
+ const shade=Math.max(-.12,Math.min(.16,variation+h*.0014));
+ const base=new THREE.Color(h>18?0x587b4b:h>7?0x62864f:0x6d955b);
+ base.offsetHSL(0,0,shade);terrainColors.push(base.r,base.g,base.b);
 }
+terrainGeo.setAttribute('color',new THREE.Float32BufferAttribute(terrainColors,3));
 terrainGeo.computeVertexNormals();
-const ground=new THREE.Mesh(terrainGeo,mats.grass);ground.receiveShadow=true;ground.frustumCulled=false;scene.add(ground);
-// The ocean reaches farther inland so the shoreline can curve naturally instead of ending in a straight edge.
-const ocean=new THREE.Mesh(new THREE.PlaneGeometry(900,460),new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false,depthWrite:true}));ocean.rotation.x=-Math.PI/2;ocean.position.set(0,-.055,-340);ocean.receiveShadow=false;ocean.castShadow=false;ocean.frustumCulled=false;scene.add(ocean);
-const waterSurface=0;
+const grassMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true});
+const ground=new THREE.Mesh(terrainGeo,grassMaterial);ground.receiveShadow=true;ground.frustumCulled=false;scene.add(ground);
 function shorelineAt(x){return -158+Math.sin(x*.017)*13+Math.sin(x*.043+1.4)*5+Math.sin(x*.008-0.7)*8}
 {
  const v=[],idx=[];
- for(let x=-450;x<=450;x+=5){
-  const shore=shorelineAt(x);
-  for(const z of [shore-5,shore+9])v.push(x,terrainHeight(x,z)+.025,z);
- }
+ for(let x=-450;x<=450;x+=5){const shore=shorelineAt(x)-5;v.push(x,-.055,-450,x,-.055,shore)}
  for(let i=0;i<180;i++){const k=i*2;idx.push(k,k+2,k+1,k+1,k+2,k+3)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();
+ const ocean=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false,depthWrite:true}));ocean.frustumCulled=false;scene.add(ocean);
+}
+{
+ const v=[],idx=[];let n=0;
+ for(let x=-450;x<=450;x+=5){const shore=shorelineAt(x);if(terrainHeight(x,shore+7)>1.8)continue;v.push(x,terrainHeight(x,shore-5)+.035,shore-5,x,terrainHeight(x,shore+9)+.035,shore+9);if(n>0){const k=(n-1)*2;idx.push(k,k+2,k+1,k+1,k+2,k+3)}n++}
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();
  const sand=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xd6c18d,roughness:.98,side:THREE.DoubleSide}));sand.receiveShadow=true;scene.add(sand);
 }
@@ -189,7 +195,9 @@ for(let ix=0;ix<roadXs.length-1;ix++){
   }
  }
 }
-// Trees with trunks and layered foliage form a green perimeter around the expanded city.
+// Keep a clear corridor for the airport access road before placing countryside trees.
+const airportRoadPath=[[220,160],[232,190],[250,220],[275,245],[310,260],[350,275],[382,298]];
+function distanceToAirportRoad(x,z){let best=Infinity;for(let i=0;i<airportRoadPath.length-1;i++){const a=airportRoadPath[i],b=airportRoadPath[i+1],dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));best=Math.min(best,Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t))}return best}
 const trunk=mat(0x644a31),leaf=[0x39734a,0x4f8551,0x6a9254].map(c=>mat(c));
 const treeColliders=[];
 function tree(x,z,s=1){const groundY=terrainHeight(x,z);box(.65*s,3*s,.65*s,trunk,x,groundY+1.5*s,z);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(x,groundY+(3.5+i*.75)*s,z);q.castShadow=true;scene.add(q)}treeColliders.push({x,z,r:.72*s})}
@@ -198,7 +206,7 @@ for(let i=0;i<185;i++){
  const x=-425+rand()*850,z=-420+rand()*820;
  const inCity=Math.abs(x)<235&&z>-120&&z<205;
  const inAirport=x>airportReserve.minX&&x<airportReserve.maxX&&z>airportReserve.minZ&&z<airportReserve.maxZ;
- if(inCity||inAirport||z<-145)continue;
+ if(inCity||inAirport||z<-145||distanceToAirportRoad(x,z)<13)continue;
  tree(x,z,.75+rand()*.85);
 }
 for(let x=-425;x<=425;x+=28){tree(x,-122,.8+rand()*.4);if(x<235||x>445)tree(x,330,.85+rand()*.5)}
@@ -226,13 +234,13 @@ dirtRoad([[-420,185],[-365,205],[-315,230],[-260,250],[-215,260]],7);
 dirtRoad([[70,270],[125,295],[175,320],[215,345]],6);
 // Airport access road, airport grounds and facilities.
 const airportPole=mat(0x303b40);
-const airportRoadPath=[[220,160],[232,190],[250,220],[275,245],[310,260],[350,275],[382,298]];
 const airportRoadMat=mat(0x303b42);
-for(let i=0;i<airportRoadPath.length-1;i++){
- const a=airportRoadPath[i],b=airportRoadPath[i+1],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),nx=-dz/len*5,nz=dx/len*5;
- const verts=[a[0]+nx,terrainHeight(a[0]+nx,a[1]+nz)+.12,a[1]+nz,a[0]-nx,terrainHeight(a[0]-nx,a[1]-nz)+.12,a[1]-nz,b[0]+nx,terrainHeight(b[0]+nx,b[1]+nz)+.12,b[1]+nz,b[0]-nx,terrainHeight(b[0]-nx,b[1]-nz)+.12,b[1]-nz];
- const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setIndex([0,2,1,1,2,3]);g.computeVertexNormals();
- const m=new THREE.Mesh(g,airportRoadMat);m.material.side=THREE.DoubleSide;m.receiveShadow=true;scene.add(m);
+{
+ const vertices=[],indices=[],samples=[];
+ for(let i=0;i<airportRoadPath.length-1;i++){const a=airportRoadPath[i],b=airportRoadPath[i+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]),steps=Math.max(8,Math.ceil(len/2));for(let j=0;j<steps;j++){const t=j/steps;samples.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}}
+ samples.push(airportRoadPath[airportRoadPath.length-1]);
+ for(let i=0;i<samples.length;i++){const p=samples[i],before=samples[Math.max(0,i-1)],after=samples[Math.min(samples.length-1,i+1)],dx=after[0]-before[0],dz=after[1]-before[1],len=Math.max(.001,Math.hypot(dx,dz)),nx=-dz/len*5.2,nz=dx/len*5.2;for(const side of [-1,1]){const x=p[0]+nx*side,z=p[1]+nz*side;vertices.push(x,terrainHeight(x,z)+.20,z)}if(i<samples.length-1){const k=i*2;indices.push(k,k+2,k+1,k+1,k+2,k+3)}}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));g.setIndex(indices);g.computeVertexNormals();const m=new THREE.Mesh(g,airportRoadMat);m.material.side=THREE.DoubleSide;m.receiveShadow=true;m.frustumCulled=false;scene.add(m);
 }
 const runwayMat=mat(0x30383d),concrete=mat(0xb9b9aa),airportWhite=mat(0xf0eee1),airportYellow=mat(0xe6c75e);
 box(24,.18,154,runwayMat,330,-.105,340);
@@ -375,7 +383,7 @@ for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+r
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');$('vehicleName').style.opacity=0;return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=new THREE.Group();const parts=makeHumanoid(d,mat(0x283e52));scene.add(d);const side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),c.angle);d.position.copy(c.group.position).addScaledVector(side,2.1);d.position.y=0;d.rotation.y=c.angle;const away=new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle));ejectedDrivers.push({group:d,parts,life:3.5,velocity:away.multiplyScalar(3.5),phase:0});notice('Driver thrown out!')}inCar=c;player.visible=false;notice(c.name+' • ENTERED');$('vehicleName').innerHTML=c.name+'<small>VEHICLE ENTERED</small>';$('vehicleName').style.opacity=1;clearTimeout($('vehicleName').timer);$('vehicleName').timer=setTimeout(()=>$('vehicleName').style.opacity=0,2600);}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
-function waterAt(p){return p.z < shorelineAt(p.x) && Math.abs(p.x)<448 && terrainHeight(p.x,p.z)<=.15}
+function waterAt(p){return p.z < shorelineAt(p.x)-5 && Math.abs(p.x)<448 && terrainHeight(p.x,p.z)<=.15}
 function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)}
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
@@ -584,7 +592,7 @@ function drawMinimap(){
  ctx.fillStyle='#d5c18c';
  for(let px=0;px<W;px+=2){
   const wx=px/scale-450,shore=shorelineAt(wx);
-  ctx.fillRect(px,mapZ(shore-5),2,Math.max(1,(14*scale)));
+  if(terrainHeight(wx,shore+7)<=1.8)ctx.fillRect(px,mapZ(shore-5),2,Math.max(1,(14*scale)));
  }
  // Generated road network, matching the expanded 900m world rather than drawing a fixed grid.
  ctx.fillStyle='#303a40';
