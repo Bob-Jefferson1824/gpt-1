@@ -26,12 +26,12 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 004</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 005</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Y 0</div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicle &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 004 adds sharper mouse steering, less camera lag, varied buildings and recognisable city landmarks. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city now has mouse-look pointer lock, solid building and vehicle collisions, clearer road layouts, improved swimming, and a live minimap. It is still a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 005 creates a different street layout and neighbourhood arrangement on every visit. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city uses generated irregular streets, varied neighbourhood blocks, pointer-lock mouse look, solid building and vehicle collisions, swimming, and a live minimap. It is still a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -49,13 +49,42 @@ const ocean=box(520,.12,180,mats.water,0,-.12,-245);ocean.receiveShadow=false;
 const waterSurface=0;
 const beach=box(520,.35,27,mats.sand,0,-.05,-142);
 const roadMat=mats.asphalt;
-function road(x,z,w,d){const y=(w>d?.035:.02);box(w,.18,d,roadMat,x,y,z);if(w>d){for(let a=-w/2+5;a<w/2-4;a+=9)box(3,.025,.18,mats.line,x+a,y+.10,z)}else{for(let a=-d/2+5;a<d/2-4;a+=9)box(.18,.025,3,mats.line,x,y+.10,z+a)}}
-for(let x=-180;x<=180;x+=60){road(x,0,13,350);box(3,.16,350,mats.side,x-8,.03,0);box(3,.16,350,mats.side,x+8,.03,0)}
-for(let z=-120;z<=180;z+=60){road(0,z,390,13);box(390,.16,3,mats.side,0,.03,z-8);box(390,.16,3,mats.side,0,.03,z+8)}
+let seed=(Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+function makeAxis(min,max){const a=[min];while(a[a.length-1]<max){const next=Math.min(max,a[a.length-1]+43+rand()*31);if(next-a[a.length-1]<22)break;a.push(next)}return a}
+const roadXs=makeAxis(-195,195),roadZs=makeAxis(-150,180);
+// Every load gets a different street rhythm. Some minor streets terminate early,
+// creating irregular blocks instead of the old identical square grid.
+const roadSegments=[];
+function road(x,z,w,d,orientation){const y=orientation==='v'?.035:.02;box(w,.18,d,roadMat,x,y,z);roadSegments.push({x,z,w,d,orientation});}
+for(let i=0;i<roadXs.length;i++){
+ const x=roadXs[i],main=i===0||i===roadXs.length-1||i===Math.floor(roadXs.length/2);
+ if(main||rand()>.13)road(x,0,main?15:10,350,'v');
+}
+for(let i=0;i<roadZs.length;i++){
+ const z=roadZs[i],main=i===0||i===roadZs.length-1||i===Math.floor(roadZs.length/2);
+ if(main||rand()>.16)road(0,z,390,main?15:10,'h');
+}
+// Raised kerbs sit outside the asphalt. No coplanar sidewalk/road surfaces.
+for(const seg of roadSegments){
+ if(seg.orientation==='v'){
+  box(2,.12,350,mats.side,seg.x-seg.w/2-1.2,.02,0);
+  box(2,.12,350,mats.side,seg.x+seg.w/2+1.2,.02,0);
+ }else{
+  box(390,.12,2,mats.side,0,.02,seg.z-seg.w/2-1.2);
+  box(390,.12,2,mats.side,0,.02,seg.z+seg.w/2+1.2);
+ }
+}
+// Dashed centre markings stop before junctions, preventing overlapping paint meshes.
+for(const seg of roadSegments){
+ if(seg.orientation==='v'){
+  for(let z=-165;z<165;z+=15)if(!roadZs.some(q=>Math.abs(q-z)<10))box(.16,.025,5,mats.line,seg.x,.143,z);
+ }else{
+  for(let x=-185;x<185;x+=15)if(!roadXs.some(q=>Math.abs(q-x)<10))box(5,.025,.16,mats.line,x,.128,seg.z);
+ }
+}
 // Buildings are placed inside city blocks, never over the road lanes.
 const buildingMats=[0xc5b8a4,0x9babb2,0xd1c6b4,0x7d9299,0xd6d0c5,0xb2a18c,0x78858a].map(c=>mat(c));
 const windowMat=new THREE.MeshStandardMaterial({color:0x83b9c7,emissive:0x183947,roughness:.22,metalness:.25});
-let seed=(Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 const buildingColliders=[];
 function makeBuilding(x,z,w,d,h,style=0){
  const material=buildingMats[style%buildingMats.length];
@@ -77,16 +106,31 @@ function makeBuilding(x,z,w,d,h,style=0){
  if(w>13&&h>18){for(let balcony=-1;balcony<=1;balcony++){box(2.8,.12,.75,mat(0x59676b),x+balcony*w*.29,3.0,z+d/2+.42);box(2.8,.5,.08,mat(0x879a9b),x+balcony*w*.29,3.3,z+d/2+.75)}}
  buildingColliders.push({minX:x-w/2-.5,maxX:x+w/2+.5,minZ:z-d/2-.5,maxZ:z+d/2+.5});
 }
-for(let x=-150;x<=150;x+=60){
- for(let z=-90;z<=150;z+=60){
-  // Two lots per block, with clear setbacks from both crossing roads.
-  const offset=rand()*3;
-  makeBuilding(x-14+offset,z-13,15,18,10+rand()*17,Math.floor(rand()*7));
-  if(rand()>.12)makeBuilding(x+14-offset,z+13,15,17,9+rand()*29,Math.floor(rand()*7));
+// Fill the actual spaces between generated roads. Lot count, footprint and height
+// vary by block, producing different residential, retail, industrial and downtown areas.
+for(let ix=0;ix<roadXs.length-1;ix++){
+ for(let iz=0;iz<roadZs.length-1;iz++){
+  const left=roadXs[ix]+9,right=roadXs[ix+1]-9,top=roadZs[iz]+9,bottom=roadZs[iz+1]-9;
+  const bw=right-left,bh=bottom-top;if(bw<17||bh<17)continue;
+  const cx=(left+right)/2,cz=(top+bottom)/2;
+  const downtown=Math.abs(cx)<65&&cz>5&&cz<125;
+  const industrial=cx>95&&cz<35;
+  const parkBlock=!downtown&&!industrial&&rand()<.12;
+  if(parkBlock)continue;
+  const count=downtown?2+Math.floor(rand()*3):(industrial?1+Math.floor(rand()*2):1+Math.floor(rand()*2));
+  for(let n=0;n<count;n++){
+   const cols=count>2?2:count,rows=Math.ceil(count/cols);
+   const col=n%cols,row=Math.floor(n/cols);
+   const cellW=bw/cols,cellH=bh/rows;
+   const w=Math.max(7,Math.min(cellW-3,industrial?22: downtown?14:18));
+   const d=Math.max(7,Math.min(cellH-3,industrial?24:16));
+   const x=left+cellW*(col+.5)+(rand()-.5)*Math.max(0,cellW-w-2);
+   const z=top+cellH*(row+.5)+(rand()-.5)*Math.max(0,cellH-d-2);
+   const h=industrial?7+rand()*8:downtown?22+rand()*48:7+rand()*23;
+   makeBuilding(x,z,w,d,h,Math.floor(rand()*7));
+  }
  }
 }
-// A recognisable compact downtown cluster, still set back from the carriageways.
-for(let i=0;i<5;i++)makeBuilding(-24+i*12,104,9,14,38+rand()*22,i+1);
 // Trees with trunks and layered foliage
 const trunk=mat(0x644a31),leaf=[0x39734a,0x4f8551,0x6a9254].map(c=>mat(c));
 function tree(x,z,s=1){box(.65*s,3*s,.65*s,trunk,x,1.5*s,z);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(x,(3.5+i*.75)*s,z);q.castShadow=true;scene.add(q)}}
@@ -114,10 +158,18 @@ player.position.set(0,0,0);
 let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0;
 const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
 addEventListener('keyup',e=>keys[e.code]=false);
-renderer.domElement.addEventListener('click',()=>{if($('start').style.display==='none'&&!locked)renderer.domElement.requestPointerLock()});
+function requestMouseLock(){
+ if($('start').style.display!=='none'||locked)return;
+ try{const result=renderer.domElement.requestPointerLock();if(result&&typeof result.catch==='function')result.catch(()=>{$('lockHint').style.display='block'})}
+ catch(_){$('lockHint').style.display='block'}
+}
 document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer.domElement;$('lockHint').style.display=locked?'none':($('start').style.display==='none'?'block':'none')});
-document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0032;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0027))}});
-$('play').onclick=()=>{$('start').style.display='none';renderer.domElement.requestPointerLock()};
+document.addEventListener('pointerlockerror',()=>{$('lockHint').style.display='block';notice('Mouse capture was blocked by the browser')});
+// A single click captures the pointer; after that mouse movement continuously turns the view.
+// No click-and-drag handler is used.
+document.addEventListener('click',()=>{if($('start').style.display==='none'&&!locked)requestMouseLock()});
+document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});
+$('play').onclick=()=>{$('start').style.display='none'};
 const cars=[];const carColors=[0xb83d36,0x315c83,0xd5d1c4,0x313b43,0xc18b35,0x47755d];
 function makeCar(x,z,color,angle=0,playerCar=false){
  const g=new THREE.Group();scene.add(g);g.position.set(x,.2,z);g.rotation.y=angle;
@@ -126,7 +178,7 @@ function makeCar(x,z,color,angle=0,playerCar=false){
  for(const sx of [-.7,.7]){box(.28,.18,.08,mat(0xffe6ae),sx,.82,2.12,g);box(.3,.18,.08,mat(0xd63b30),sx,.82,-2.12,g)}
  const c={group:g,speed:0,angle,playerCar};cars.push(c);return c;
 }
-for(let i=0;i<18;i++){if(i%2===0){const roadX=(-3+Math.floor(i/2)%7)*60;const z=-105+rand()*285;makeCar(roadX,z,carColors[i%carColors.length],0)}else{const roadZ=(-2+Math.floor(i/2)%6)*60;const x=-175+rand()*350;makeCar(x,roadZ,carColors[i%carColors.length],Math.PI/2)}}
+for(let i=0;i<18;i++){if(i%2===0){const roadX=roadXs[Math.floor(rand()*roadXs.length)];const z=-135+rand()*300;makeCar(roadX,z,carColors[i%carColors.length],0)}else{const roadZ=roadZs[Math.floor(rand()*roadZs.length)];const x=-185+rand()*370;makeCar(x,roadZ,carColors[i%carColors.length],Math.PI/2)}}
 const myCar=makeCar(7,5,0xd64b37,Math.PI,true);
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
@@ -193,10 +245,13 @@ function drawMinimap(){
  // shoreline and sea
  ctx.fillStyle='#167f9c';ctx.fillRect(0,0,W,69);
  ctx.fillStyle='#d5c18c';ctx.fillRect(0,69,W,19);
- // street grid
+ // Generated road network, matching the world rather than drawing a fixed grid.
  ctx.fillStyle='#303a40';
- for(let x=-180;x<=180;x+=60)ctx.fillRect((x+260)*scale-5,0,10,H);
- for(let z=-120;z<=180;z+=60)ctx.fillRect(0,(z+260)*scale-5,W,10);
+ for(const seg of roadSegments){
+  const x=(seg.x+260)*scale,z=(seg.z+260)*scale;
+  if(seg.orientation==='v')ctx.fillRect(x-seg.w*scale/2,0,seg.w*scale,H);
+  else ctx.fillRect(0,z-seg.w*scale/2,W,seg.w*scale);
+ }
  // Unique landmarks are marked separately so the map is not just a repeated grid.
  ctx.fillStyle='#d2b56e';ctx.fillRect((-106+260)*scale,(-182+260)*scale,72*scale,16*scale);
  ctx.fillStyle='#c9d8dd';ctx.fillRect((131+260)*scale,(73+260)*scale,38*scale,24*scale);
