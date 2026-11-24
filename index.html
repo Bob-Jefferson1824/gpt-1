@@ -418,7 +418,7 @@ function makeAircraft(kind,x,z){
  const a={group:g,aircraft:true,kind,speed:0,angle:kind==='plane'?Math.PI:0,name:kind==='plane'?'SEABRIGHT LIGHT AIRCRAFT':'SEABRIGHT HELICOPTER',rotor,propeller,altitude:g.position.y,verticalSpeed:0,pitch:0,frontView:new THREE.Vector3(0,kind==='plane'?1.75:1.85,kind==='plane'?3.9:1.9),sinking:false,ai:false};
  aircraft.push(a);cars.push(a);return a;
 }
-makeAircraft('plane',330,375);
+makeAircraft('plane',330,355);aircraft[0].angle=Math.PI;aircraft[0].group.rotation.y=Math.PI;
 makeAircraft('helicopter',420,405);
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
@@ -537,7 +537,7 @@ function update(dt){
     c.verticalSpeed+=(keys.Space?26:keys.ShiftLeft?-22:0)*dt;c.verticalSpeed*=Math.pow(.96,dt*60);c.altitude+=c.verticalSpeed*dt;c.altitude=Math.max(floor,Math.min(125,c.altitude));if(c.altitude<=floor&&c.verticalSpeed<0)c.verticalSpeed=0;
     c.group.rotation.set(0,c.angle,-steer*.08,'YXZ');
    }
-   const nextX=Math.max(-440,Math.min(440,c.group.position.x+Math.sin(c.angle)*c.speed*dt)),nextZ=Math.max(-500,Math.min(440,c.group.position.z+Math.cos(c.angle)*c.speed*dt));if(!(plane&&c.altitude<=updatedFloor+.8&&circleHitsBuilding(nextX,nextZ,2.8))){c.group.position.x=nextX;c.group.position.z=nextZ}else{c.speed*=.35}
+   const nextX=Math.max(-440,Math.min(440,c.group.position.x+Math.sin(c.angle)*c.speed*dt)),nextZ=Math.max(-500,Math.min(440,c.group.position.z+Math.cos(c.angle)*c.speed*dt));const currentFloor=terrainHeight(c.group.position.x,c.group.position.z)+.38;if(!(plane&&c.altitude<=currentFloor+.8&&circleHitsBuilding(nextX,nextZ,2.8))){c.group.position.x=nextX;c.group.position.z=nextZ}else{c.speed*=.35}
    const updatedFloor=terrainHeight(c.group.position.x,c.group.position.z)+.38;if(c.altitude<updatedFloor){c.altitude=updatedFloor;c.verticalSpeed=0}
    c.group.position.y=c.altitude;if(c.rotor)c.rotor.rotation.y+=dt*(plane?0:22);if(c.propeller)c.propeller.rotation.z+=dt*(c.speed*.8+8);
    player.position.copy(c.group.position);yaw=c.angle;$('mode').textContent=plane?(c.altitude>updatedFloor+.5?'FLYING PLANE':'PLANE • RUNWAY'):'HELICOPTER';$('speed').textContent='SPEED  '+Math.round(c.speed*3.6)+' km/h';
