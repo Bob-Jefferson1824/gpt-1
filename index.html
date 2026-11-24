@@ -224,7 +224,7 @@ function update(dt){
   $('speed').textContent='SPEED  '+(move.lengthSq()?Math.round(sp*3.6):0)+' km/h';
  }
  // Ejected drivers stumble away briefly, then leave the scene.
- for(let i=ejectedDrivers.length-1;i>=0;i--){const d=ejectedDrivers[i];d.life-=dt;d.group.position.x+=Math.sin(d.group.rotation.y)*dt*2.2;d.group.position.z+=Math.cos(d.group.rotation.y)*dt*2.2;d.group.rotation.x=Math.min(1.2,d.group.rotation.x+dt*1.8);if(d.life<=0){scene.remove(d.group);d.group.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material!==mats.glass)o.material.dispose()}});ejectedDrivers.splice(i,1)}}
+ for(let i=ejectedDrivers.length-1;i>=0;i--){const d=ejectedDrivers[i];d.life-=dt;d.group.position.x+=Math.sin(d.group.rotation.y)*dt*2.2;d.group.position.z+=Math.cos(d.group.rotation.y)*dt*2.2;d.group.rotation.x=Math.min(1.2,d.group.rotation.x+dt*1.8);if(d.life<=0){scene.remove(d.group);ejectedDrivers.splice(i,1)}}
  // Arcade hit particles fade quickly and never leave marks.
  hitCooldown=Math.max(0,hitCooldown-dt);for(let i=hitParticles.length-1;i>=0;i--){const p=hitParticles[i];p.life-=dt;p.vel.y-=9*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.rotation.x+=dt*8;p.mesh.rotation.z+=dt*6;p.mesh.scale.setScalar(Math.max(.01,p.life));if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();hitParticles.splice(i,1)}}
  // Pedestrians can be knocked out by punches or moving cars, then respawn elsewhere.
