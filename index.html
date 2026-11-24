@@ -29,32 +29,33 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 023</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 024</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
- <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
+ <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 023 replaces the randomly interrupted streets with a fully connected road grid.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 024 expands Seabright with a larger connected street network, new outer districts and a wider coastline.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x9ac8d5);scene.fog=new THREE.Fog(0x9ac8d5,100,440);
-const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,900);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9ac8d5);scene.fog=new THREE.Fog(0x9ac8d5,130,680);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,1500);
 const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;document.body.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xd9f4ff,0x52604b,2.0));
-const sun=new THREE.DirectionalLight(0xffedcf,2.6);sun.position.set(-100,150,80);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-180;sun.shadow.camera.right=180;sun.shadow.camera.top=180;sun.shadow.camera.bottom=-180;scene.add(sun);
+const sun=new THREE.DirectionalLight(0xffedcf,2.6);sun.position.set(-100,150,80);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-430;sun.shadow.camera.right=430;sun.shadow.camera.top=430;sun.shadow.camera.bottom=-430;scene.add(sun);
 const mat=(c,r=.85,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
 const mats={asphalt:mat(0x303b42),side:mat(0xb6b7ad),line:mat(0xe8dfc1),grass:mat(0x668b59),sand:mat(0xd6c18d),water: new THREE.MeshStandardMaterial({color:0x167f9c,roughness:.38,metalness:.04}),glass: new THREE.MeshStandardMaterial({color:0x9ed8e9,roughness:.18,metalness:.35}),white:mat(0xe7e5d9),dark:mat(0x1c252b)};
 const box=(w,h,d,material,x,y,z,parent=scene)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
-// A gently rolling landscape surrounds the original flat city centre.
+// Build 024 expands the world to 900m square. The original downtown remains central,
+ // while connected outer districts and forested hills fill the new land.
 function smoothRange(a,b,v){const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)}
 function terrainHeight(x,z){
- const edge=Math.max(smoothRange(215,275,Math.abs(x)),smoothRange(205,265,z));
+ const edge=Math.max(smoothRange(385,440,Math.abs(x)),smoothRange(355,430,z));
  const peaks=[
-  [-265,85,21,78], [265,105,25,88], [-95,260,20,92],
-  [115,270,27,86], [285,-55,16,72], [-285,-45,14,70]
+  [-410,95,30,92], [410,125,34,98], [-155,410,28,100],
+  [165,420,32,105], [410,-85,20,82], [-410,-45,18,78]
  ];
  let h=0;
  for(const [px,pz,amp,spread] of peaks){
@@ -75,7 +76,7 @@ function applyCarTerrain(car){
  car.group.quaternion.setFromRotationMatrix(basis);
  car.group.position.y=terrainHeight(x,z)+.26;
 }
-const terrainGeo=new THREE.PlaneGeometry(620,620,80,80);
+const terrainGeo=new THREE.PlaneGeometry(900,900,120,120);
 terrainGeo.rotateX(-Math.PI/2);
 const terrainPos=terrainGeo.attributes.position;
 for(let i=0;i<terrainPos.count;i++){
@@ -84,42 +85,42 @@ for(let i=0;i<terrainPos.count;i++){
 }
 terrainGeo.computeVertexNormals();
 const ground=new THREE.Mesh(terrainGeo,mats.grass);ground.receiveShadow=true;ground.frustumCulled=false;scene.add(ground);
-const ocean=new THREE.Mesh(new THREE.PlaneGeometry(620,180),new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false,depthWrite:true}));ocean.rotation.x=-Math.PI/2;ocean.position.set(0,-.055,-245);ocean.receiveShadow=false;ocean.castShadow=false;ocean.frustumCulled=false;scene.add(ocean);
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(900,400),new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false,depthWrite:true}));ocean.rotation.x=-Math.PI/2;ocean.position.set(0,-.055,-350);ocean.receiveShadow=false;ocean.castShadow=false;ocean.frustumCulled=false;scene.add(ocean);
 const waterSurface=0;
-const beach=box(620,.35,26.5,mats.sand,0,-.05,-141.75);
+const beach=box(900,.35,26.5,mats.sand,0,-.05,-141.75);
 const roadMat=mats.asphalt;
 // Fixed world seed: the city layout now stays identical on every load.
 let seed=0x51AB71;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 function makeAxis(min,max){const a=[min];while(a[a.length-1]<max){const next=Math.min(max,a[a.length-1]+43+rand()*31);if(next-a[a.length-1]<22)break;a.push(next)}return a}
-const roadXs=makeAxis(-195,195),roadZs=makeAxis(-105,180);
-// Fully connected street grid: every north-south street crosses every
-// east-west street. No randomly omitted roads or artificial dead ends.
+const roadXs=makeAxis(-360,360),roadZs=makeAxis(-105,300);
+// Expanded connected street grid: every north-south street crosses every
+// east-west street. The western edge is rebuilt as part of the same network.
 const roadSegments=[];
 function road(x,z,w,d,orientation){const y=orientation==='v'?.035:.02;box(w,.18,d,roadMat,x,y,z);roadSegments.push({x,z,w,d,orientation});}
 for(let i=0;i<roadXs.length;i++){
  const x=roadXs[i],main=i===0||i===roadXs.length-1||i===Math.floor(roadXs.length/2);
- road(x,30,main?15:10,290,'v');
+ road(x,97.5,main?15:10,405,'v');
 }
 for(let i=0;i<roadZs.length;i++){
  const z=roadZs[i],main=i===0||i===roadZs.length-1||i===Math.floor(roadZs.length/2);
- road(0,z,390,main?15:10,'h');
+ road(0,z,720,main?15:10,'h');
 }
 // Raised kerbs sit outside the asphalt. No coplanar sidewalk/road surfaces.
 for(const seg of roadSegments){
  if(seg.orientation==='v'){
-  box(2,.12,290,mats.side,seg.x-seg.w/2-1.2,.02,30);
-  box(2,.12,290,mats.side,seg.x+seg.w/2+1.2,.02,30);
+  box(2,.12,405,mats.side,seg.x-seg.w/2-1.2,.02,97.5);
+  box(2,.12,405,mats.side,seg.x+seg.w/2+1.2,.02,97.5);
  }else{
-  box(390,.12,2,mats.side,0,.02,seg.z-seg.w/2-1.2);
-  box(390,.12,2,mats.side,0,.02,seg.z+seg.w/2+1.2);
+  box(720,.12,2,mats.side,0,.02,seg.z-seg.w/2-1.2);
+  box(720,.12,2,mats.side,0,.02,seg.z+seg.w/2+1.2);
  }
 }
 // Dashed centre markings stop before junctions, preventing overlapping paint meshes.
 for(const seg of roadSegments){
  if(seg.orientation==='v'){
-  for(let z=-105;z<165;z+=15)if(!roadZs.some(q=>Math.abs(q-z)<10))box(.16,.025,5,mats.line,seg.x,.143,z);
+  for(let z=-100;z<295;z+=15)if(!roadZs.some(q=>Math.abs(q-z)<10))box(.16,.025,5,mats.line,seg.x,.143,z);
  }else{
-  for(let x=-185;x<185;x+=15)if(!roadXs.some(q=>Math.abs(q-x)<10))box(5,.025,.16,mats.line,x,.128,seg.z);
+  for(let x=-350;x<350;x+=15)if(!roadXs.some(q=>Math.abs(q-x)<10))box(5,.025,.16,mats.line,x,.128,seg.z);
  }
 }
 // Buildings are placed inside city blocks, never over the road lanes.
@@ -154,8 +155,9 @@ for(let ix=0;ix<roadXs.length-1;ix++){
   const bw=right-left,bh=bottom-top;if(bw<17||bh<17)continue;
   const cx=(left+right)/2,cz=(top+bottom)/2;
   const downtown=Math.abs(cx)<65&&cz>5&&cz<125;
-  const industrial=cx>95&&cz<35;
-  const parkBlock=!downtown&&!industrial&&rand()<.12;
+  const outerDistrict=Math.abs(cx)>275||cz>225;
+  const industrial=cx>95&&cz<35&&!outerDistrict;
+  const parkBlock=!downtown&&!industrial&&(outerDistrict?rand()<.48:rand()<.12);
   if(parkBlock)continue;
   const count=downtown?2+Math.floor(rand()*3):(industrial?1+Math.floor(rand()*2):1+Math.floor(rand()*2));
   for(let n=0;n<count;n++){
@@ -171,12 +173,12 @@ for(let ix=0;ix<roadXs.length-1;ix++){
   }
  }
 }
-// Trees with trunks and layered foliage
+// Trees with trunks and layered foliage form a green perimeter around the expanded city.
 const trunk=mat(0x644a31),leaf=[0x39734a,0x4f8551,0x6a9254].map(c=>mat(c));
 const treeColliders=[];
 function tree(x,z,s=1){const groundY=terrainHeight(x,z);box(.65*s,3*s,.65*s,trunk,x,groundY+1.5*s,z);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(x,groundY+(3.5+i*.75)*s,z);q.castShadow=true;scene.add(q)}treeColliders.push({x,z,r:.72*s})}
-for(let x=-245;x<245;x+=18){tree(x,-126,.8+rand()*.4);tree(x,205,.8+rand()*.5)}
-for(let z=-110;z<190;z+=28){tree(-210,z,.8);tree(210,z,.8)}
+for(let x=-425;x<=425;x+=20){tree(x,-122,.8+rand()*.4);tree(x,330,.85+rand()*.5)}
+for(let z=-100;z<=310;z+=26){tree(-410,z,.8+rand()*.2);tree(410,z,.8+rand()*.2)}
 // Street lights
 const pole=mat(0x303b40),lamp=mat(0xffe4a6,.4);
 const verticalStreets=roadSegments.filter(v=>v.orientation==='v'),horizontalStreets=roadSegments.filter(v=>v.orientation==='h');
@@ -261,7 +263,7 @@ function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
 const trafficTypes=['compact','sedan','suv','van','pickup'];
-for(let i=0;i<36;i++){
+for(let i=0;i<52;i++){
  let spawn=null;
  for(let attempt=0;attempt<24&&!spawn;attempt++){
   const seg=roadSegments[Math.floor(rand()*roadSegments.length)],dir=rand()<.5?1:-1;
@@ -284,7 +286,7 @@ for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+r
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');$('vehicleName').style.opacity=0;return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=new THREE.Group();const parts=makeHumanoid(d,mat(0x283e52));scene.add(d);const side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),c.angle);d.position.copy(c.group.position).addScaledVector(side,2.1);d.position.y=0;d.rotation.y=c.angle;const away=new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle));ejectedDrivers.push({group:d,parts,life:3.5,velocity:away.multiplyScalar(3.5),phase:0});notice('Driver thrown out!')}inCar=c;player.visible=false;notice(c.name+' • ENTERED');$('vehicleName').innerHTML=c.name+'<small>VEHICLE ENTERED</small>';$('vehicleName').style.opacity=1;clearTimeout($('vehicleName').timer);$('vehicleName').timer=setTimeout(()=>$('vehicleName').style.opacity=0,2600);}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
-function waterAt(p){return p.z < -158 && Math.abs(p.x)<258}
+function waterAt(p){return p.z < -158 && Math.abs(p.x)<430}
 function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)}
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
@@ -380,7 +382,7 @@ function update(dt){
   c.speed+=drive*dt*19;c.speed*=Math.pow(.986,dt*60);c.speed=Math.max(-12,Math.min(34,c.speed));
   c.angle+=steer*dt*(.85+Math.abs(c.speed)*.035)*Math.sign(c.speed||1);
   const nx=c.group.position.x+Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z+Math.cos(c.angle)*c.speed*dt;
-  if(Math.abs(nx)<300&&nz>-340&&nz<300&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz;applyCarTerrain(c)}
+  if(Math.abs(nx)<440&&nz>-500&&nz<440&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz;applyCarTerrain(c)}
   if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0;c.submerged=Math.min(1,c.submerged+dt*.2);notice('Water! Your car is sinking!')}
   if(inCar===c)player.position.copy(c.group.position);yaw=c.angle;for(const n of people){if(n.down||Math.abs(c.speed)<4)continue;const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z;if(Math.hypot(dx,dz)<2.65){knockOutPedestrian(n,new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle)).multiplyScalar(1.1));c.speed*=.78;}}
   $('mode').textContent=c.sinking?'VEHICLE SINKING':'DRIVING';$('speed').textContent='SPEED  '+Math.round(Math.abs(c.speed)*3.6)+' km/h';
@@ -391,7 +393,7 @@ function update(dt){
   const move=new THREE.Vector3();if(keys.KeyW)move.add(forward);if(keys.KeyS)move.sub(forward);if(keys.KeyD)move.add(right);if(keys.KeyA)move.sub(right);if(move.lengthSq()>0){move.normalize();p.addScaledVector(move,sp*dt);player.rotation.y=yaw;walkT+=dt*10;legL.rotation.x=Math.sin(walkT)*.65;legR.rotation.x=-Math.sin(walkT)*.65;armL.rotation.x=-Math.sin(walkT)*.4;armR.rotation.x=Math.sin(walkT)*.4}else{legL.rotation.x=legR.rotation.x=armL.rotation.x=armR.rotation.x=0}
   if(swimming){velocityY+=(keys.Space?5:(keys.ShiftLeft?-1.5:-.45))*dt;velocityY*=Math.pow(.94,dt*60);p.y+=velocityY*dt;p.y=Math.max(-2.4,Math.min(.05,p.y));$('barWrap').style.display='block';underwater=p.y<-.8?Math.min(1,underwater+dt*.12):Math.max(0,underwater-dt*.6);$('bar').style.width=(100-underwater*100)+'%';$('mode').textContent=p.y<-.8?'UNDERWATER':'SWIMMING';if(p.y<-.8){drownTimer+=dt;if(drownTimer>3.5)health=Math.max(0,health-dt*18)}else drownTimer=Math.max(0,drownTimer-dt*1.5)}
   else{p.y+=velocityY*dt;velocityY-=19*dt;const floor=terrainHeight(p.x,p.z);if(p.y<=floor){p.y=floor;velocityY=0;onGround=true}else onGround=false;$('barWrap').style.display='none';underwater=0;drownTimer=0;$('mode').textContent='ON FOOT'}
-  p.x=Math.max(-300,Math.min(300,p.x));p.z=Math.max(-340,Math.min(300,p.z));if(!swimming){const floor=terrainHeight(p.x,p.z);if(p.y<=floor){p.y=floor;velocityY=0;onGround=true}else onGround=false}resolvePlayerBuildings();
+  p.x=Math.max(-440,Math.min(440,p.x));p.z=Math.max(-500,Math.min(440,p.z));if(!swimming){const floor=terrainHeight(p.x,p.z);if(p.y<=floor){p.y=floor;velocityY=0;onGround=true}else onGround=false}resolvePlayerBuildings();
   $('speed').textContent='SPEED  '+(move.lengthSq()?Math.round(sp*3.6):0)+' km/h';
  }
  // Ejected drivers recover to their feet, then sprint away from the stolen car.
@@ -412,9 +414,9 @@ function update(dt){
  // Arcade hit particles fade quickly and never leave marks.
  hitCooldown=Math.max(0,hitCooldown-dt);for(let i=hitParticles.length-1;i>=0;i--){const p=hitParticles[i];p.life-=dt;p.vel.y-=9*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.rotation.x+=dt*8;p.mesh.rotation.z+=dt*6;p.mesh.scale.setScalar(Math.max(.01,p.life));if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();hitParticles.splice(i,1)}}
  // Pedestrians can be knocked out by punches or moving cars, then respawn elsewhere.
- for(const n of people){if(n.down){n.respawn-=dt;n.knockTimer=Math.max(0,n.knockTimer-dt);if(n.knockTimer<=0)n.g.visible=false;if(n.respawn<=0){let sx=0,sz=0,found=false;for(let tries=0;tries<30;tries++){sx=-210+rand()*420;sz=-112+rand()*300;if(circleHitsBuilding(sx,sz,1.0))continue;if(Math.hypot(sx-player.position.x,sz-player.position.z)<18)continue;if(cars.some(c=>Math.hypot(sx-c.group.position.x,sz-c.group.position.z)<9))continue;found=true;break}if(!found){n.respawn=.5;continue}n.g.position.set(sx,terrainHeight(sx,sz),sz);n.g.rotation.set(0,0,0);n.g.visible=true;n.health=2;n.down=false;n.hitVel.set(0,0,0);n.hitTimer=0;n.dir=rand()*Math.PI*2;n.phase=rand()*8}continue}if(n.hitTimer>0){n.hitTimer=Math.max(0,n.hitTimer-dt);n.g.position.addScaledVector(n.hitVel,dt);n.hitVel.multiplyScalar(Math.pow(.08,dt));}else{n.hitVel.set(0,0,0)}let flee=new THREE.Vector3();for(const c of cars){const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z,dist=Math.hypot(dx,dz);if(dist<10&&Math.abs(c.speed)>2)flee.add(new THREE.Vector3(dx,0,dz).normalize().multiplyScalar((10-dist)*1.5))}
+ for(const n of people){if(n.down){n.respawn-=dt;n.knockTimer=Math.max(0,n.knockTimer-dt);if(n.knockTimer<=0)n.g.visible=false;if(n.respawn<=0){let sx=0,sz=0,found=false;for(let tries=0;tries<30;tries++){sx=-390+rand()*780;sz=-100+rand()*390;if(circleHitsBuilding(sx,sz,1.0))continue;if(Math.hypot(sx-player.position.x,sz-player.position.z)<18)continue;if(cars.some(c=>Math.hypot(sx-c.group.position.x,sz-c.group.position.z)<9))continue;found=true;break}if(!found){n.respawn=.5;continue}n.g.position.set(sx,terrainHeight(sx,sz),sz);n.g.rotation.set(0,0,0);n.g.visible=true;n.health=2;n.down=false;n.hitVel.set(0,0,0);n.hitTimer=0;n.dir=rand()*Math.PI*2;n.phase=rand()*8}continue}if(n.hitTimer>0){n.hitTimer=Math.max(0,n.hitTimer-dt);n.g.position.addScaledVector(n.hitVel,dt);n.hitVel.multiplyScalar(Math.pow(.08,dt));}else{n.hitVel.set(0,0,0)}let flee=new THREE.Vector3();for(const c of cars){const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z,dist=Math.hypot(dx,dz);if(dist<10&&Math.abs(c.speed)>2)flee.add(new THREE.Vector3(dx,0,dz).normalize().multiplyScalar((10-dist)*1.5))}
   if(flee.lengthSq()>0){n.g.position.addScaledVector(flee.normalize(),dt*5);n.dir=Math.atan2(-flee.x,-flee.z)}else{n.phase+=dt;n.g.position.x+=Math.sin(n.phase+n.dir)*dt*.8;n.g.position.z+=Math.cos(n.phase+n.dir)*dt*.8}
-  n.g.position.x=Math.max(-230,Math.min(230,n.g.position.x));n.g.position.z=Math.max(-125,Math.min(200,n.g.position.z));resolvePedestrianBuildings(n);n.phase+=dt*(flee.lengthSq()>0?2.4:1.5);n.parts.legL.rotation.x=Math.sin(n.phase*6)*.48;n.parts.legR.rotation.x=-Math.sin(n.phase*6)*.48;n.parts.armL.rotation.x=-Math.sin(n.phase*6)*.32;n.parts.armR.rotation.x=Math.sin(n.phase*6)*.32;n.g.rotation.y=n.dir;
+  n.g.position.x=Math.max(-410,Math.min(410,n.g.position.x));n.g.position.z=Math.max(-120,Math.min(320,n.g.position.z));resolvePedestrianBuildings(n);n.phase+=dt*(flee.lengthSq()>0?2.4:1.5);n.parts.legL.rotation.x=Math.sin(n.phase*6)*.48;n.parts.legR.rotation.x=-Math.sin(n.phase*6)*.48;n.parts.armL.rotation.x=-Math.sin(n.phase*6)*.32;n.parts.armR.rotation.x=Math.sin(n.phase*6)*.32;n.g.rotation.y=n.dir;
  }
  // Health and stamina HUD; death is a brief fade/respawn, with no graphic effects.
  if(health<=0){health=0;if(deadTimer<=0){deadTimer=2.2;notice('You are exhausted. Respawning...')}deadTimer-=dt;if(deadTimer<=0){health=100;stamina=100;drownTimer=0;underwater=0;player.position.copy(PLAYER_SPAWN);player.visible=true;if(inCar){inCar=null}velocityY=0;}}
@@ -478,12 +480,12 @@ function carBlocked(car,x,z){
  return false;
 }
 function drawMinimap(){
- const c=$('mapCanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height,scale=W/620,mapX=x=>(x+310)*scale,mapZ=z=>(z+310)*scale;
+ const c=$('mapCanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height,scale=W/900,mapX=x=>(x+450)*scale,mapZ=z=>(z+450)*scale;
  ctx.clearRect(0,0,W,H);ctx.fillStyle='#4d7651';ctx.fillRect(0,0,W,H);
  // shoreline and sea
  ctx.fillStyle='#167f9c';ctx.fillRect(0,0,W,mapZ(-158));
  ctx.fillStyle='#d5c18c';ctx.fillRect(0,mapZ(-158),W,(mapZ(-132)-mapZ(-158)));
- // Generated road network, matching the world rather than drawing a fixed grid.
+ // Generated road network, matching the expanded 900m world rather than drawing a fixed grid.
  ctx.fillStyle='#303a40';
  for(const seg of roadSegments){
   const x=mapX(seg.x-seg.w/2),z=mapZ(seg.z-seg.d/2);
