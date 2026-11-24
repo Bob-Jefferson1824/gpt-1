@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 031</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 032</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicles & aircraft<br><b>Plane:</b> W accelerate &nbsp; S brake &nbsp; A/D steer<br><b>SPACE</b> pitch up (needs speed) &nbsp; <b>SHIFT</b> pitch down<br><b>Helicopter:</b> W/S throttle &nbsp; SPACE/SHIFT altitude<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 029 improves aircraft models, cockpit views, flight physics and exiting aircraft.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 032 adds arcade vehicle damage, collisions and crash effects.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -206,8 +206,8 @@ for(let ix=0;ix<roadXs.length-1;ix++){
 const airportRoadPath=[[220,160],[232,190],[250,220],[275,245],[310,260],[350,275],[382,298]];
 function distanceToAirportRoad(x,z){let best=Infinity;for(let i=0;i<airportRoadPath.length-1;i++){const a=airportRoadPath[i],b=airportRoadPath[i+1],dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));best=Math.min(best,Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t))}return best}
 const trunk=mat(0x644a31),leaf=[0x39734a,0x4f8551,0x6a9254].map(c=>mat(c));
-const treeColliders=[];
-function tree(x,z,s=1){const groundY=terrainHeight(x,z);box(.65*s,3*s,.65*s,trunk,x,groundY+1.5*s,z);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(x,groundY+(3.5+i*.75)*s,z);q.castShadow=true;scene.add(q)}treeColliders.push({x,z,r:.72*s})}
+const treeColliders=[];const lightPoleColliders=[];
+function tree(x,z,s=1){const groundY=terrainHeight(x,z),g=new THREE.Group();g.position.set(x,groundY,z);scene.add(g);box(.65*s,3*s,.65*s,trunk,0,1.5*s,0,g);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(0,(3.5+i*.75)*s,0);q.castShadow=true;g.add(q)}treeColliders.push({x,z,r:.72*s,group:g,fallen:false})}
 // Keep the airport reservation east of town clear for a future runway, terminal and helipad.
 for(let i=0;i<185;i++){
  const x=-425+rand()*850,z=-420+rand()*820;
@@ -293,7 +293,7 @@ box(.3,2.8,.3,fencePost,265,1.4,245);box(.3,2.8,.3,fencePost,290,1.4,245);
 // Street lights
 const pole=mat(0x303b40),lamp=mat(0xffe4a6,.4);
 const verticalStreets=roadSegments.filter(v=>v.orientation==='v'),horizontalStreets=roadSegments.filter(v=>v.orientation==='h');
-for(const v of verticalStreets)for(const h of horizontalStreets){if(rand()>.48)continue;const x=v.x+v.w/2+3,z=h.z+h.w/2+3;box(.22,6,.22,pole,x,3,z);box(2,.18,.18,pole,x+1,5.8,z);box(.8,.18,.7,lamp,x+2,5.7,z)}
+for(const v of verticalStreets)for(const h of horizontalStreets){if(rand()>.48)continue;const x=v.x+v.w/2+3,z=h.z+h.w/2+3,g=new THREE.Group();g.position.set(x,terrainHeight(x,z),z);scene.add(g);box(.22,6,.22,pole,0,3,0,g);box(2,.18,.18,pole,1,5.8,0,g);box(.8,.18,.7,lamp,2,5.7,0,g);lightPoleColliders.push({x,z,group:g,fallen:false})}
 // Park plaza and waterfront promenade
 box(80,.25,42,mat(0xc5bda7),-130,.05,80);for(let i=0;i<12;i++)tree(-165+(i%6)*13,64+Math.floor(i/6)*30,.65);
 // Waterfront kept clear: marina dock and pier removed.
@@ -369,7 +369,7 @@ function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
  const occupant=new THREE.Group(),driverParts=makeHumanoid(occupant,mat(0x283e52));occupant.visible=false;g.add(occupant);
  g.scale.set(1.1,1.08,1.1);
  const carNames={compact:'PIPER COMPACT',sedan:'SEABRIGHT SEDAN',suv:'IRONCLAD SUV',van:'CITYLINE VAN',pickup:'RANGER PICKUP'};
- const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,length:v.l,name:carNames[type]||'SEDAN',frontView:new THREE.Vector3(0,v.h+.48,v.l*.30),sinking:false,sinkTime:0,submerged:0,stuckTime:0,cruise:8+rand()*2};
+ const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,length:v.l,name:carNames[type]||'SEDAN',frontView:new THREE.Vector3(0,v.h+.48,v.l*.30),sinking:false,sinkTime:0,submerged:0,stuckTime:0,cruise:8+rand()*2,health:100,crashCooldown:0,crashed:false};
  cars.push(c);applyCarTerrain(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
@@ -415,7 +415,7 @@ function makeAircraft(kind,x,z){
   rotor=new THREE.Group();rotor.position.set(0,2.25,0);g.add(rotor);box(12,.08,.22,rotorMat,0,0,0,rotor);const blade=box(.22,.08,12,rotorMat,0,0,0,rotor);
   for(const side of [-1,1]){box(.13,.13,4.1,trim,side*1.15,.42,0,g);box(.12,.1,.18,trim,side*1.15,.28,1.55,g);box(.12,.1,.18,trim,side*1.15,.28,-1.55,g)}
  }
- const a={group:g,aircraft:true,kind,speed:0,angle:kind==='plane'?Math.PI:0,name:kind==='plane'?'SEABRIGHT LIGHT AIRCRAFT':'SEABRIGHT HELICOPTER',rotor,propeller,altitude:g.position.y,verticalSpeed:0,pitch:0,frontView:new THREE.Vector3(0,kind==='plane'?1.75:1.85,kind==='plane'?3.9:1.9),sinking:false,ai:false};
+ const a={group:g,aircraft:true,kind,speed:0,angle:kind==='plane'?Math.PI:0,name:kind==='plane'?'SEABRIGHT LIGHT AIRCRAFT':'SEABRIGHT HELICOPTER',rotor,propeller,altitude:g.position.y,verticalSpeed:0,pitch:0,frontView:new THREE.Vector3(0,kind==='plane'?1.75:1.85,kind==='plane'?3.9:1.9),sinking:false,ai:false,falling:false,destroyed:false,crashCooldown:0};
  aircraft.push(a);cars.push(a);return a;
 }
 makeAircraft('plane',330,355);aircraft[0].angle=Math.PI;aircraft[0].group.rotation.y=Math.PI;
@@ -423,7 +423,7 @@ makeAircraft('helicopter',420,405);
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
 for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const parts=makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,terrainHeight(x,z),z);scene.add(g);people.push({g,parts,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
-function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
+function nearestCar(){let best=null,dist=5;for(const c of cars){if(c.destroyed||!c.group.visible||(c===myCar&&inCar))continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){
  const exiting=inCar,side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),exiting.group.rotation.y);
  player.position.copy(exiting.group.position).addScaledVector(side,3);
@@ -547,7 +547,9 @@ function update(dt){
   c.speed+=drive*dt*19;c.speed*=Math.pow(.986,dt*60);c.speed=Math.max(-12,Math.min(34,c.speed));
   c.angle+=steer*dt*(.85+Math.abs(c.speed)*.035)*Math.sign(c.speed||1);
   const nx=c.group.position.x+Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z+Math.cos(c.angle)*c.speed*dt;
-  if(Math.abs(nx)<440&&nz>-500&&nz<440&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz;applyCarTerrain(c)}
+  c.crashCooldown=Math.max(0,c.crashCooldown-dt);
+  const impact=handleVehicleImpact(c,nx,nz);
+  if(!impact&&Math.abs(nx)<440&&nz>-500&&nz<440&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz;applyCarTerrain(c)}
   if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0;c.submerged=Math.min(1,c.submerged+dt*.2);notice('Water! Your car is sinking!')}
   if(inCar===c)player.position.copy(c.group.position);yaw=c.angle;for(const n of people){if(n.down||Math.abs(c.speed)<4)continue;const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z;if(Math.hypot(dx,dz)<2.65){knockOutPedestrian(n,new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle)).multiplyScalar(1.1));c.speed*=.78;}}
   $('mode').textContent=c.sinking?'VEHICLE SINKING':'DRIVING';$('speed').textContent='SPEED  '+Math.round(Math.abs(c.speed)*3.6)+' km/h';
@@ -561,6 +563,8 @@ function update(dt){
   p.x=Math.max(-440,Math.min(440,p.x));p.z=Math.max(-500,Math.min(440,p.z));if(!swimming){const floor=terrainHeight(p.x,p.z);if(p.y<=floor){p.y=floor;velocityY=0;onGround=true}else onGround=false}resolvePlayerBuildings();
   $('speed').textContent='SPEED  '+(move.lengthSq()?Math.round(sp*3.6):0)+' km/h';
  }
+ // Unoccupied aircraft keep moving under gravity. Landing creates a brief arcade explosion.
+ for(const a of aircraft){if(a.destroyed||a===inCar||a.altitude<=terrainHeight(a.group.position.x,a.group.position.z)+.5)continue;a.falling=true;a.verticalSpeed=Math.max(-65,(a.verticalSpeed||0)-24*dt);a.altitude+=a.verticalSpeed*dt;a.angle+=dt*1.4;a.group.rotation.y=a.angle;a.group.rotation.z+=dt*.65;a.group.position.y=a.altitude;a.group.position.x+=Math.sin(a.angle)*a.speed*dt*.45;a.group.position.z+=Math.cos(a.angle)*a.speed*dt*.45;const ground=terrainHeight(a.group.position.x,a.group.position.z)+.35;if(a.altitude<=ground){a.altitude=ground;a.group.position.y=ground;arcadeExplosion(a.group.position.clone().add(new THREE.Vector3(0,1.2,0)),1.45);a.group.visible=false;a.destroyed=true;notice('Aircraft wrecked!')}}
  // Ejected drivers recover to their feet, then sprint away from the stolen car.
  for(let i=ejectedDrivers.length-1;i>=0;i--){const d=ejectedDrivers[i];d.life-=dt;d.phase+=dt;const recovery=Math.max(0,Math.min(1,3.5-d.life));if(d.life>2.5){d.group.rotation.x=Math.PI/2*(1-recovery);d.group.position.y=terrainHeight(d.group.position.x,d.group.position.z)}else{d.group.rotation.x=0;d.group.position.addScaledVector(d.velocity,dt);d.group.position.y=terrainHeight(d.group.position.x,d.group.position.z);d.velocity.multiplyScalar(Math.pow(.94,dt));d.parts.legL.rotation.x=Math.sin(d.phase*12)*.8;d.parts.legR.rotation.x=-Math.sin(d.phase*12)*.8;d.parts.armL.rotation.x=-Math.sin(d.phase*12)*.65;d.parts.armR.rotation.x=Math.sin(d.phase*12)*.65;}if(d.life<=0){people.push({g:d.group,parts:d.parts,dir:Math.atan2(-d.velocity.x,-d.velocity.z),phase:d.phase,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0});ejectedDrivers.splice(i,1)}}
  // Punch animation: shoulder draws back, arm drives forward, then settles naturally.
@@ -641,8 +645,13 @@ function resolvePlayerBuildings(){
 function resolvePedestrianBuildings(n){const p=n.g.position,r=.78;for(let pass=0;pass<2;pass++){for(const b of buildingColliders){const qx=Math.max(b.minX,Math.min(p.x,b.maxX)),qz=Math.max(b.minZ,Math.min(p.z,b.maxZ));let dx=p.x-qx,dz=p.z-qz,d=Math.hypot(dx,dz);if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}}for(const t of treeColliders){let dx=p.x-t.x,dz=p.z-t.z,d=Math.hypot(dx,dz),min=r+t.r;if(d<min){if(d<.001){dx=1;d=1}p.x+=dx/d*(min-d);p.z+=dz/d*(min-d)}}}p.y=terrainHeight(p.x,p.z)}
 function carBlocked(car,x,z){
  if(circleHitsBuilding(x,z,1.65))return true;
- for(const other of cars){if(other===car||other.aircraft)continue;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<Math.max(4.1,((car.length||4.2)+(other.length||4.2))*.48))return true}
+ for(const other of cars){if(other===car||other.aircraft||other.destroyed)continue;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<Math.max(4.1,((car.length||4.2)+(other.length||4.2))*.48))return true}
  return false;
+}
+function arcadeExplosion(position,scale=1){for(let i=0;i<34;i++){const smoke=i%3===0,mesh=new THREE.Mesh(smoke?new THREE.SphereGeometry(.35,7,6):new THREE.BoxGeometry(.18,.18,.18),mat(smoke?0x555b5c:[0xff5a32,0xffb13b,0xffe18a][i%3],.72));mesh.position.copy(position);mesh.scale.setScalar(scale*(.7+rand()*1.6));scene.add(mesh);hitParticles.push({mesh,vel:new THREE.Vector3((rand()-.5)*10,2+rand()*10,(rand()-.5)*10),life:.7+rand()*.8})}}
+function toppleObstacle(obstacle){if(!obstacle||obstacle.fallen)return;obstacle.fallen=true;const g=obstacle.group;g.position.y+=.15;g.rotation.z=(rand()<.5?-1:1)*1.25;g.rotation.x=(rand()-.5)*.28;arcadeBurst(g.position.clone().add(new THREE.Vector3(0,2,0)))}
+function crashCar(car,damage,position){if(!car||car.aircraft||car.crashed||car.crashCooldown>0)return;car.health=Math.max(0,car.health-damage);car.crashCooldown=.55;car.speed*=-.2;arcadeBurst(position.clone().add(new THREE.Vector3(0,.8,0)));if(car.health<=0){car.crashed=true;arcadeExplosion(position.clone().add(new THREE.Vector3(0,1,0)),1.15);car.group.visible=false;if(inCar===car){player.position.copy(position).add(new THREE.Vector3(2,0,2));player.position.y=terrainHeight(player.position.x,player.position.z);player.visible=true;inCar=null;velocityY=0;notice('Vehicle wrecked!')}}else if(inCar===car){notice('Vehicle damaged • '+car.health+'% condition')}}
+function handleVehicleImpact(car,nx,nz){const speed=Math.abs(car.speed);if(speed<3)return false;const treeHit=treeColliders.find(t=>!t.fallen&&Math.hypot(nx-t.x,nz-t.z)<t.r+1.8);if(treeHit){if(speed>7)toppleObstacle(treeHit);crashCar(car,Math.max(5,Math.round(speed*1.7)),new THREE.Vector3(treeHit.x,terrainHeight(treeHit.x,treeHit.z),treeHit.z));return true}const poleHit=lightPoleColliders.find(p=>!p.fallen&&Math.hypot(nx-p.x,nz-p.z)<2.2);if(poleHit){if(speed>6)toppleObstacle(poleHit);crashCar(car,Math.max(4,Math.round(speed*1.3)),new THREE.Vector3(poleHit.x,terrainHeight(poleHit.x,poleHit.z),poleHit.z));return true}const other=cars.find(o=>o!==car&&!o.aircraft&&!o.destroyed&&Math.hypot(nx-o.group.position.x,nz-o.group.position.z)<3.25);if(other){crashCar(car,Math.max(4,Math.round(speed*1.15)),car.group.position.clone());if(!other.ai)crashCar(other,Math.max(4,Math.round(speed*.8)),other.group.position.clone());else{other.speed*=.35;other.crashCooldown=.8;arcadeBurst(other.group.position.clone().add(new THREE.Vector3(0,1,0)))}return true}if(circleHitsBuilding(nx,nz,1.65)){crashCar(car,Math.max(3,Math.round(speed*.9)),car.group.position.clone());return true}return false;
 }
 function drawMinimap(){
  const c=$('mapCanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height,scale=W/900,mapX=x=>(x+450)*scale,mapZ=z=>(z+450)*scale;
