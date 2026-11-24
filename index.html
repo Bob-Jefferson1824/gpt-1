@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 015</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 016</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 015 corrects vehicle facing and adds a simple bonnet camera for driving.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 016 fixes the bonnet camera and aligns all driving camera modes with the car's direction.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -351,12 +351,13 @@ function update(dt){
  player.visible=!inCar&&cameraMode!==1;
  const lookDir=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
  if(cameraMode===1){
-  // First-person view sits just above the character's eyes or behind the windscreen.
+  // Driving first-person is a simple bonnet view. No interior meshes are needed.
   if(inCar){
-   const cockpitPos=inCar.group.localToWorld(inCar.cockpit.clone());
-   camera.position.copy(cockpitPos);
+   const bonnetPos=inCar.group.localToWorld(inCar.frontView.clone());
+   camera.position.copy(bonnetPos);
    const carForward=new THREE.Vector3(0,0,1).applyQuaternion(inCar.group.quaternion);
-   const viewTarget=cockpitPos.clone().addScaledVector(carForward,22);viewTarget.y+=pitch*3;camera.lookAt(viewTarget);
+   const viewTarget=bonnetPos.clone().addScaledVector(carForward,30);
+   camera.lookAt(viewTarget);
   }else{
    camera.position.set(target.x,target.y+2.08,target.z);
    const viewTarget=camera.position.clone().add(lookDir.multiplyScalar(12));viewTarget.y+=pitch*7;camera.lookAt(viewTarget);
@@ -364,9 +365,17 @@ function update(dt){
  }else{
   const camDist=cameraMode===2?(inCar?15:11.5):(inCar?10:7.5);
   const camHeight=cameraMode===2?(inCar?6.2:5.1):(inCar?4.1:3.2);
-  const desired=new THREE.Vector3(target.x+Math.sin(yaw)*camDist,target.y+camHeight+pitch*5,target.z+Math.cos(yaw)*camDist);
-  camera.position.lerp(desired,Math.min(1,dt*8));
-  camera.lookAt(target.x,target.y+(inCar?1.1:1.55),target.z);
+  if(inCar){
+   const carForward=new THREE.Vector3(0,0,1).applyQuaternion(inCar.group.quaternion);
+   const desired=target.clone().addScaledVector(carForward,-camDist);
+   desired.y+=camHeight;
+   camera.position.lerp(desired,Math.min(1,dt*8));
+   camera.lookAt(target.x,target.y+1.1,target.z);
+  }else{
+   const desired=new THREE.Vector3(target.x+Math.sin(yaw)*camDist,target.y+camHeight+pitch*5,target.z+Math.cos(yaw)*camDist);
+   camera.position.lerp(desired,Math.min(1,dt*8));
+   camera.lookAt(target.x,target.y+1.55,target.z);
+  }
  }
  $('cameraMode').textContent='CAMERA · '+['THIRD PERSON','FIRST PERSON','CINEMATIC'][cameraMode];$('mode').textContent=inCar?inCar.name:'ON FOOT';
  if(!inCar)player.rotation.y=yaw;
