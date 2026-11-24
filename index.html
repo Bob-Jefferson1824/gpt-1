@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 024</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 025</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 024 expands Seabright with a larger connected street network, new outer districts and a wider coastline.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 025 adds a denser high-rise downtown and opens up the countryside with hills, trees, dirt tracks and reserved airport land.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -52,10 +52,11 @@ const box=(w,h,d,material,x,y,z,parent=scene)=>{const o=new THREE.Mesh(new THREE
  // while connected outer districts and forested hills fill the new land.
 function smoothRange(a,b,v){const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)}
 function terrainHeight(x,z){
- const edge=Math.max(smoothRange(385,440,Math.abs(x)),smoothRange(355,430,z));
+ const edge=Math.max(smoothRange(220,410,Math.abs(x)),smoothRange(215,410,z));
  const peaks=[
-  [-410,95,30,92], [410,125,34,98], [-155,410,28,100],
-  [165,420,32,105], [410,-85,20,82], [-410,-45,18,78]
+  [-315,95,27,100], [-365,320,32,110], [-120,385,34,112],
+  [120,390,36,115], [405,335,29,105], [405,-315,24,100],
+  [-400,-285,26,105]
  ];
  let h=0;
  for(const [px,pz,amp,spread] of peaks){
@@ -92,35 +93,35 @@ const roadMat=mats.asphalt;
 // Fixed world seed: the city layout now stays identical on every load.
 let seed=0x51AB71;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 function makeAxis(min,max){const a=[min];while(a[a.length-1]<max){const next=Math.min(max,a[a.length-1]+43+rand()*31);if(next-a[a.length-1]<22)break;a.push(next)}return a}
-const roadXs=makeAxis(-360,360),roadZs=makeAxis(-105,300);
+const roadXs=makeAxis(-220,220),roadZs=makeAxis(-105,190);
 // Expanded connected street grid: every north-south street crosses every
 // east-west street. The western edge is rebuilt as part of the same network.
 const roadSegments=[];
 function road(x,z,w,d,orientation){const y=orientation==='v'?.035:.02;box(w,.18,d,roadMat,x,y,z);roadSegments.push({x,z,w,d,orientation});}
 for(let i=0;i<roadXs.length;i++){
  const x=roadXs[i],main=i===0||i===roadXs.length-1||i===Math.floor(roadXs.length/2);
- road(x,97.5,main?15:10,405,'v');
+ road(x,42.5,main?15:10,295,'v');
 }
 for(let i=0;i<roadZs.length;i++){
  const z=roadZs[i],main=i===0||i===roadZs.length-1||i===Math.floor(roadZs.length/2);
- road(0,z,720,main?15:10,'h');
+ road(0,z,440,main?15:10,'h');
 }
 // Raised kerbs sit outside the asphalt. No coplanar sidewalk/road surfaces.
 for(const seg of roadSegments){
  if(seg.orientation==='v'){
-  box(2,.12,405,mats.side,seg.x-seg.w/2-1.2,.02,97.5);
-  box(2,.12,405,mats.side,seg.x+seg.w/2+1.2,.02,97.5);
+  box(2,.12,295,mats.side,seg.x-seg.w/2-1.2,.02,42.5);
+  box(2,.12,295,mats.side,seg.x+seg.w/2+1.2,.02,42.5);
  }else{
-  box(720,.12,2,mats.side,0,.02,seg.z-seg.w/2-1.2);
-  box(720,.12,2,mats.side,0,.02,seg.z+seg.w/2+1.2);
+  box(440,.12,2,mats.side,0,.02,seg.z-seg.w/2-1.2);
+  box(440,.12,2,mats.side,0,.02,seg.z+seg.w/2+1.2);
  }
 }
 // Dashed centre markings stop before junctions, preventing overlapping paint meshes.
 for(const seg of roadSegments){
  if(seg.orientation==='v'){
-  for(let z=-100;z<295;z+=15)if(!roadZs.some(q=>Math.abs(q-z)<10))box(.16,.025,5,mats.line,seg.x,.143,z);
+  for(let z=-100;z<190;z+=15)if(!roadZs.some(q=>Math.abs(q-z)<10))box(.16,.025,5,mats.line,seg.x,.143,z);
  }else{
-  for(let x=-350;x<350;x+=15)if(!roadXs.some(q=>Math.abs(q-x)<10))box(5,.025,.16,mats.line,x,.128,seg.z);
+  for(let x=-210;x<210;x+=15)if(!roadXs.some(q=>Math.abs(q-x)<10))box(5,.025,.16,mats.line,x,.128,seg.z);
  }
 }
 // Buildings are placed inside city blocks, never over the road lanes.
@@ -154,21 +155,20 @@ for(let ix=0;ix<roadXs.length-1;ix++){
   const left=roadXs[ix]+9,right=roadXs[ix+1]-9,top=roadZs[iz]+9,bottom=roadZs[iz+1]-9;
   const bw=right-left,bh=bottom-top;if(bw<17||bh<17)continue;
   const cx=(left+right)/2,cz=(top+bottom)/2;
-  const downtown=Math.abs(cx)<65&&cz>5&&cz<125;
-  const outerDistrict=Math.abs(cx)>275||cz>225;
-  const industrial=cx>95&&cz<35&&!outerDistrict;
-  const parkBlock=!downtown&&!industrial&&(outerDistrict?rand()<.48:rand()<.12);
+  const downtown=Math.abs(cx)<115&&cz>-35&&cz<155;
+  const industrial=cx>95&&cz<35;
+  const parkBlock=!downtown&&!industrial&&rand()<.12;
   if(parkBlock)continue;
-  const count=downtown?2+Math.floor(rand()*3):(industrial?1+Math.floor(rand()*2):1+Math.floor(rand()*2));
+  const count=downtown?3+Math.floor(rand()*3):(industrial?1+Math.floor(rand()*2):1+Math.floor(rand()*2));
   for(let n=0;n<count;n++){
    const cols=count>2?2:count,rows=Math.ceil(count/cols);
    const col=n%cols,row=Math.floor(n/cols);
    const cellW=bw/cols,cellH=bh/rows;
-   const w=Math.max(7,Math.min(cellW-3,industrial?22: downtown?14:18));
-   const d=Math.max(7,Math.min(cellH-3,industrial?24:16));
+   const w=Math.max(8,Math.min(cellW-2,industrial?22: downtown?21:18));
+   const d=Math.max(8,Math.min(cellH-2,industrial?24: downtown?21:16));
    const x=left+cellW*(col+.5)+(rand()-.5)*Math.max(0,cellW-w-2);
    const z=top+cellH*(row+.5)+(rand()-.5)*Math.max(0,cellH-d-2);
-   const h=industrial?7+rand()*8:downtown?22+rand()*48:7+rand()*23;
+   const h=industrial?7+rand()*8:downtown?42+rand()*68:7+rand()*23;
    makeBuilding(x,z,w,d,h,Math.floor(rand()*7));
   }
  }
@@ -177,8 +177,38 @@ for(let ix=0;ix<roadXs.length-1;ix++){
 const trunk=mat(0x644a31),leaf=[0x39734a,0x4f8551,0x6a9254].map(c=>mat(c));
 const treeColliders=[];
 function tree(x,z,s=1){const groundY=terrainHeight(x,z);box(.65*s,3*s,.65*s,trunk,x,groundY+1.5*s,z);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(x,groundY+(3.5+i*.75)*s,z);q.castShadow=true;scene.add(q)}treeColliders.push({x,z,r:.72*s})}
-for(let x=-425;x<=425;x+=20){tree(x,-122,.8+rand()*.4);tree(x,330,.85+rand()*.5)}
-for(let z=-100;z<=310;z+=26){tree(-410,z,.8+rand()*.2);tree(410,z,.8+rand()*.2)}
+// Keep the airport reservation east of town clear for a future runway, terminal and helipad.
+const airportReserve={minX:250,maxX:440,minZ:35,maxZ:245};
+for(let i=0;i<185;i++){
+ const x=-425+rand()*850,z=-420+rand()*820;
+ const inCity=Math.abs(x)<235&&z>-120&&z<205;
+ const inAirport=x>airportReserve.minX&&x<airportReserve.maxX&&z>airportReserve.minZ&&z<airportReserve.maxZ;
+ if(inCity||inAirport||z<-145)continue;
+ tree(x,z,.75+rand()*.85);
+}
+for(let x=-425;x<=425;x+=28){tree(x,-122,.8+rand()*.4);if(x<235||x>445)tree(x,330,.85+rand()*.5)}
+// Unpaved country tracks wind through the open hills. They deliberately stay out of the airport field.
+const ruralRoads=[];
+function dirtRoad(points,width=7){
+ const vertices=[],indices=[];
+ for(let i=0;i<points.length-1;i++){
+  const a=points[i],b=points[i+1],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),nx=-dz/len*width/2,nz=dx/len*width/2;
+  const steps=Math.max(8,Math.ceil(len/8)),base=vertices.length/3;
+  for(let j=0;j<=steps;j++){
+   const t=j/steps,x=a[0]+dx*t,z=a[1]+dz*t;
+   vertices.push(x+nx,terrainHeight(x+nx,z+nz)+.075,z+nz,x-nx,terrainHeight(x-nx,z-nz)+.075,z-nz);
+   if(j<steps){const k=base+j*2;indices.push(k,k+1,k+2,k+1,k+3,k+2)}
+  }
+ }
+ const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex(indices);geo.computeVertexNormals();
+ const mesh=new THREE.Mesh(geo,mat(0x806b4d,.98));mesh.receiveShadow=true;mesh.frustumCulled=false;scene.add(mesh);
+ ruralRoads.push(points.map(p=>[p[0],p[1]]));
+}
+dirtRoad([[-420,-220],[-345,-205],[-290,-155],[-245,-105],[-225,-35]],7);
+dirtRoad([[-430,45],[-365,75],[-330,145],[-270,205],[-205,240]],6);
+dirtRoad([[-330,365],[-265,325],[-205,285],[-130,270],[-55,295],[25,345]],7);
+dirtRoad([[-375,-355],[-300,-330],[-230,-300],[-155,-285],[-80,-305],[10,-355]],7);
+dirtRoad([[80,-400],[145,-350],[185,-300],[220,-250]],6);
 // Street lights
 const pole=mat(0x303b40),lamp=mat(0xffe4a6,.4);
 const verticalStreets=roadSegments.filter(v=>v.orientation==='v'),horizontalStreets=roadSegments.filter(v=>v.orientation==='h');
@@ -491,6 +521,12 @@ function drawMinimap(){
   const x=mapX(seg.x-seg.w/2),z=mapZ(seg.z-seg.d/2);
   ctx.fillRect(x,z,seg.w*scale,seg.d*scale);
  }
+ // Country dirt tracks and the clear airport reservation.
+ ctx.strokeStyle='#92734e';ctx.lineWidth=Math.max(2,7*scale);ctx.lineCap='round';ctx.lineJoin='round';
+ for(const path of ruralRoads){ctx.beginPath();path.forEach((p,i)=>{const x=mapX(p[0]),z=mapZ(p[1]);if(i===0)ctx.moveTo(x,z);else ctx.lineTo(x,z)});ctx.stroke()}
+ ctx.fillStyle='#9aa878';ctx.fillRect(mapX(250),mapZ(245),190*scale,210*scale);
+ ctx.strokeStyle='#d8d1a8';ctx.lineWidth=1.5;ctx.strokeRect(mapX(250),mapZ(245),190*scale,210*scale);
+ ctx.fillStyle='#e7e4c7';ctx.font='9px sans-serif';ctx.fillText('AIRPORT SITE',mapX(292),mapZ(135));
  // Unique landmarks are marked separately so the map is not just a repeated grid.
  
  ctx.fillStyle='#c9d8dd';ctx.fillRect(mapX(131),mapZ(73),38*scale,24*scale);
