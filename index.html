@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 016</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 017</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 016 fixes the bonnet camera and aligns all driving camera modes with the car's direction.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 017 fixes the bonnet camera and aligns all driving camera modes with the car's direction.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -184,7 +184,7 @@ function makeHumanoid(g,shirtMaterial,pose='standing'){
  return {torso,head,legL,legR,armL,armR};
 }
 function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
- const g=new THREE.Group();scene.add(g);g.position.set(x,.2,z);g.rotation.y=angle;
+ const g=new THREE.Group();scene.add(g);g.position.set(x,.26,z);g.rotation.y=angle;
  const specs={compact:{w:2.0,h:.66,l:3.65,cabW:1.48,cabH:.72,cabL:1.75,wheelX:.99,wheelZ:1.18},sedan:{w:2.15,h:.72,l:4.2,cabW:1.62,cabH:.88,cabL:2.1,wheelX:1.12,wheelZ:1.35},suv:{w:2.3,h:.86,l:4.5,cabW:1.82,cabH:1.08,cabL:2.45,wheelX:1.2,wheelZ:1.42},van:{w:2.35,h:.95,l:4.8,cabW:1.98,cabH:1.35,cabL:3.0,wheelX:1.23,wheelZ:1.5},pickup:{w:2.3,h:.78,l:4.7,cabW:1.72,cabH:.95,cabL:1.95,wheelX:1.2,wheelZ:1.48}};
  const v=specs[type]||specs.sedan,body=mat(color,.34,.28),trim=mat(0x202a30,.55,.35),rubber=mat(0x111518,.92),chrome=mat(0x9da9ad,.28,.72);
  // Class-specific proportions and bodywork make silhouettes recognisably different.
@@ -208,8 +208,8 @@ function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
   box(.36,.2,.09,mat(0xb82e2a,.3),sx*v.w*.34,v.h*.68,-v.l/2-.045,g);
  }
  for(const wx of [-v.wheelX,v.wheelX])for(const wz of [-v.wheelZ,v.wheelZ]){
-  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.31,20),rubber);wheel.rotation.z=Math.PI/2;wheel.position.set(wx,.44,wz);g.add(wheel);
-  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.325,16),chrome);hub.rotation.z=Math.PI/2;hub.position.set(wx,.44,wz);g.add(hub);
+  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.31,20),rubber);wheel.rotation.z=Math.PI/2;wheel.position.set(wx,.18,wz);g.add(wheel);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.325,16),chrome);hub.rotation.z=Math.PI/2;hub.position.set(wx,.18,wz);g.add(hub);
  }
  if(type==='compact'){box(v.w*.72,.12,.18,trim,0,v.h+.08,-v.l*.46,g)}
  if(type==='suv'){box(v.cabW*.72,.1,.16,trim,0,v.h+v.cabH+.02,-.05,g);box(.12,.55,.12,trim,-v.cabW*.42,v.h+v.cabH*.3,0,g);box(.12,.55,.12,trim,v.cabW*.42,v.h+v.cabH*.3,0,g)}
