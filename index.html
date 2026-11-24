@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 018</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 019</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 018 fixes the bonnet camera and aligns all driving camera modes with the car's direction.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 019 fixes the bonnet camera and aligns all driving camera modes with the car's direction.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -62,6 +62,18 @@ function terrainHeight(x,z){
   h+=amp*Math.exp(-(dx*dx+dz*dz)/(2*spread*spread));
  }
  return h*edge;
+}
+function applyCarTerrain(car){
+ const x=car.group.position.x,z=car.group.position.z,e=.8;
+ const gx=(terrainHeight(x+e,z)-terrainHeight(x-e,z))/(2*e);
+ const gz=(terrainHeight(x,z+e)-terrainHeight(x,z-e))/(2*e);
+ const forward=new THREE.Vector3(Math.sin(car.angle),gx*Math.sin(car.angle)+gz*Math.cos(car.angle),Math.cos(car.angle)).normalize();
+ const normal=new THREE.Vector3(-gx,1,-gz).normalize();
+ const right=new THREE.Vector3().crossVectors(normal,forward).normalize();
+ const up=new THREE.Vector3().crossVectors(forward,right).normalize();
+ const basis=new THREE.Matrix4().makeBasis(right,up,forward);
+ car.group.quaternion.setFromRotationMatrix(basis);
+ car.group.position.y=terrainHeight(x,z)+.26;
 }
 const terrainGeo=new THREE.PlaneGeometry(620,620,80,80);
 terrainGeo.rotateX(-Math.PI/2);
@@ -207,7 +219,7 @@ function makeHumanoid(g,shirtMaterial,pose='standing'){
  return {torso,head,legL,legR,armL,armR};
 }
 function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
- const g=new THREE.Group();scene.add(g);g.position.set(x,.26,z);g.rotation.y=angle;
+ const g=new THREE.Group();scene.add(g);g.position.set(x,terrainHeight(x,z)+.26,z);g.rotation.y=angle;
  const specs={compact:{w:2.0,h:.66,l:3.65,cabW:1.48,cabH:.72,cabL:1.75,wheelX:.99,wheelZ:1.18},sedan:{w:2.15,h:.72,l:4.2,cabW:1.62,cabH:.88,cabL:2.1,wheelX:1.12,wheelZ:1.35},suv:{w:2.3,h:.86,l:4.5,cabW:1.82,cabH:1.08,cabL:2.45,wheelX:1.2,wheelZ:1.42},van:{w:2.35,h:.95,l:4.8,cabW:1.98,cabH:1.35,cabL:3.0,wheelX:1.23,wheelZ:1.5},pickup:{w:2.3,h:.78,l:4.7,cabW:1.72,cabH:.95,cabL:1.95,wheelX:1.2,wheelZ:1.48}};
  const v=specs[type]||specs.sedan,body=mat(color,.34,.28),trim=mat(0x202a30,.55,.35),rubber=mat(0x111518,.92),chrome=mat(0x9da9ad,.28,.72);
  // Class-specific proportions and bodywork make silhouettes recognisably different.
@@ -244,17 +256,17 @@ function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
  g.scale.set(1.1,1.08,1.1);
  const carNames={compact:'PIPER COMPACT',sedan:'SEABRIGHT SEDAN',suv:'IRONCLAD SUV',van:'CITYLINE VAN',pickup:'RANGER PICKUP'};
  const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,name:carNames[type]||'SEDAN',frontView:new THREE.Vector3(0,v.h+.48,v.l*.30),sinking:false,sinkTime:0,submerged:0,cruise:8+rand()*2};
- cars.push(c);return c;
+ cars.push(c);applyCarTerrain(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
 const trafficTypes=['compact','sedan','suv','van','pickup'];
 for(let i=0;i<36;i++){
  const seg=roadSegments[Math.floor(rand()*roadSegments.length)],dir=rand()<.5?1:-1;
  if(seg.orientation==='v'){
-  const laneX=seg.x+(dir>0?2.3:-2.3),z=seg.z+(rand()-.5)*(seg.d-18),angle=dir>0?0:Math.PI;
+  const laneX=seg.x+(dir>0?-2.3:2.3),z=seg.z+(rand()-.5)*(seg.d-18),angle=dir>0?0:Math.PI;
   makeCar(laneX,z,carColors[i%carColors.length],angle,false,{orientation:'v',fixed:laneX,min:seg.z-seg.d/2+5,max:seg.z+seg.d/2-5,dir},trafficTypes[i%trafficTypes.length]);
  }else{
-  const laneZ=seg.z+(dir>0?-2.3:2.3),x=seg.x+(rand()-.5)*(seg.w-18),angle=dir>0?Math.PI/2:-Math.PI/2;
+  const laneZ=seg.z+(dir>0?2.3:-2.3),x=seg.x+(rand()-.5)*(seg.w-18),angle=dir>0?Math.PI/2:-Math.PI/2;
   makeCar(x,laneZ,carColors[i%carColors.length],angle,false,{orientation:'h',fixed:laneZ,min:seg.x-seg.w/2+5,max:seg.x+seg.w/2-5,dir},trafficTypes[i%trafficTypes.length]);
  }
 }
@@ -320,7 +332,7 @@ function update(dt){
   if(!carBlocked(c,tx,tz)){c.group.position.x=tx;c.group.position.z=tz}
   else c.speed=Math.max(0,c.speed-15*dt);
   c.angle=vertical?(lane.dir>0?0:Math.PI):(lane.dir>0?Math.PI/2:-Math.PI/2);
-  c.group.rotation.y=c.angle;
+  applyCarTerrain(c);
   if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0}
  }
  if(inCar){
@@ -329,9 +341,9 @@ function update(dt){
   else{
   const drive=(keys.KeyW?1:0)-(keys.KeyS?1:0),steer=(keys.KeyA?1:0)-(keys.KeyD?1:0);
   c.speed+=drive*dt*19;c.speed*=Math.pow(.986,dt*60);c.speed=Math.max(-12,Math.min(34,c.speed));
-  c.angle+=steer*dt*(.85+Math.abs(c.speed)*.035)*Math.sign(c.speed||1);c.group.rotation.y=c.angle;
+  c.angle+=steer*dt*(.85+Math.abs(c.speed)*.035)*Math.sign(c.speed||1);
   const nx=c.group.position.x+Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z+Math.cos(c.angle)*c.speed*dt;
-  if(Math.abs(nx)<300&&nz>-340&&nz<300&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz;c.group.position.y=terrainHeight(nx,nz)+.26}
+  if(Math.abs(nx)<300&&nz>-340&&nz<300&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz;applyCarTerrain(c)}
   if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0;c.submerged=Math.min(1,c.submerged+dt*.2);notice('Water! Your car is sinking!')}
   if(inCar===c)player.position.copy(c.group.position);yaw=c.angle;for(const n of people){if(n.down||Math.abs(c.speed)<4)continue;const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z;if(Math.hypot(dx,dz)<2.65){knockOutPedestrian(n,new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle)).multiplyScalar(1.1));c.speed*=.78;}}
   $('mode').textContent=c.sinking?'VEHICLE SINKING':'DRIVING';$('speed').textContent='SPEED  '+Math.round(Math.abs(c.speed)*3.6)+' km/h';
@@ -450,7 +462,7 @@ function drawMinimap(){
  // vehicle markers
  for(const car of cars){const x=mapX(car.group.position.x),z=mapZ(car.group.position.z);ctx.fillStyle=car===inCar?'#fff2a6':'#e5a05d';ctx.fillRect(x-3,z-3,6,6)}
  const p=inCar?inCar.group.position:player.position,x=mapX(p.x),z=mapZ(p.z);
- ctx.save();ctx.translate(x,z);ctx.rotate(inCar?inCar.angle+Math.PI:-yaw);ctx.fillStyle='#ffffff';ctx.strokeStyle='#10212b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,7);ctx.lineTo(0,4);ctx.lineTo(-6,7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+ ctx.save();ctx.translate(x,z);ctx.rotate(inCar?Math.PI-inCar.angle:-yaw);ctx.fillStyle='#ffffff';ctx.strokeStyle='#10212b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,7);ctx.lineTo(0,4);ctx.lineTo(-6,7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
 }
 let mapTimer=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);update(dt);mapTimer+=dt;if(mapTimer>.12){drawMinimap();mapTimer=0}renderer.render(scene,camera)}animate();
