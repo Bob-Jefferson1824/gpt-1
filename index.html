@@ -197,7 +197,7 @@ function dirtRoad(points,width=7){
   for(let j=0;j<=steps;j++){
    const t=j/steps,x=a[0]+dx*t,z=a[1]+dz*t;
    vertices.push(x+nx,terrainHeight(x+nx,z+nz)+.075,z+nz,x-nx,terrainHeight(x-nx,z-nz)+.075,z-nz);
-   if(j<steps){const k=base+j*2;indices.push(k,k+1,k+2,k+1,k+3,k+2)}
+   if(j<steps){const k=base+j*2;indices.push(k,k+2,k+1,k+1,k+2,k+3)}
   }
  }
  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex(indices);geo.computeVertexNormals();
