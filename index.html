@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 021</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 022</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 021 improves traffic spacing, lane discipline and junction safety.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 022 helps traffic clear blocked dead ends and recover from queues.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -256,7 +256,7 @@ function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
  const occupant=new THREE.Group(),driverParts=makeHumanoid(occupant,mat(0x283e52));occupant.visible=false;g.add(occupant);
  g.scale.set(1.1,1.08,1.1);
  const carNames={compact:'PIPER COMPACT',sedan:'SEABRIGHT SEDAN',suv:'IRONCLAD SUV',van:'CITYLINE VAN',pickup:'RANGER PICKUP'};
- const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,length:v.l,name:carNames[type]||'SEDAN',frontView:new THREE.Vector3(0,v.h+.48,v.l*.30),sinking:false,sinkTime:0,submerged:0,cruise:8+rand()*2};
+ const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,length:v.l,name:carNames[type]||'SEDAN',frontView:new THREE.Vector3(0,v.h+.48,v.l*.30),sinking:false,sinkTime:0,submerged:0,stuckTime:0,cruise:8+rand()*2};
  cars.push(c);applyCarTerrain(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
@@ -332,17 +332,42 @@ function update(dt){
   c.speed+=Math.max(-accel*dt,Math.min(accel*dt,targetSpeed-c.speed));
   const step=c.speed*dt*lane.dir;
   let next=coord+step;
+  let endpointBlocked=false;
   if(next<lane.min||next>lane.max){
-   // Keep each vehicle travelling in its assigned direction. Reversing in the
-   // same lane caused head-on traffic; recycle it to the far end when clear.
-   const wrap=lane.dir>0?lane.min+5:lane.max-5;
+   // Normally recycle traffic to the far end without changing direction.
+   const wrap=lane.dir>0?lane.min+7:lane.max-7;
    const wx=vertical?lane.fixed:wrap,wz=vertical?wrap:lane.fixed;
-   if(!carBlocked(c,wx,wz)){c.group.position.x=wx;c.group.position.z=wz;next=wrap}
-   else{next=coord;c.speed=0}
+   if(!carBlocked(c,wx,wz)){
+    c.group.position.x=wx;c.group.position.z=wz;next=wrap;c.stuckTime=0;
+   }else{
+    endpointBlocked=true;next=coord;c.speed=0;
+   }
   }
   const tx=vertical?lane.fixed:next,tz=vertical?next:lane.fixed;
-  if(!carBlocked(c,tx,tz)){c.group.position.x=tx;c.group.position.z=tz}
-  else c.speed=Math.max(0,c.speed-20*dt);
+  if(!carBlocked(c,tx,tz)){
+   c.group.position.x=tx;c.group.position.z=tz;
+   if(!endpointBlocked)c.stuckTime=0;
+  }else{
+   c.speed=Math.max(0,c.speed-20*dt);
+   if(next!==coord)c.stuckTime+=dt;
+  }
+  // If a queue seals a dead end, turn around into the opposite lane rather
+  // than letting several cars stack up behind the blocked wrap point.
+  if(endpointBlocked){
+   c.stuckTime+=dt;
+   if(c.stuckTime>4){
+    const oldDir=lane.dir,newDir=-oldDir;
+    const newFixed=lane.fixed+(vertical?(oldDir>0?4.6:-4.6):(oldDir>0?-4.6:4.6));
+    const retreat=newDir>0?lane.min+9:lane.max-9;
+    const rx=vertical?newFixed:retreat,rz=vertical?retreat:newFixed;
+    if(!carBlocked(c,rx,rz)){
+     lane.dir=newDir;lane.fixed=newFixed;
+     c.group.position.x=rx;c.group.position.z=rz;
+     c.angle=vertical?(newDir>0?0:Math.PI):(newDir>0?Math.PI/2:-Math.PI/2);
+     c.speed=1.5;c.stuckTime=0;
+    }else c.stuckTime=3.5;
+   }
+  }
   c.angle=vertical?(lane.dir>0?0:Math.PI):(lane.dir>0?Math.PI/2:-Math.PI/2);
   applyCarTerrain(c);
   if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0}
