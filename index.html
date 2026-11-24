@@ -26,7 +26,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 002</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 003</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Y 0</div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicle &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
@@ -183,8 +183,8 @@ function drawMinimap(){
  const c=$('mapCanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height,scale= W/520;
  ctx.clearRect(0,0,W,H);ctx.fillStyle='#4d7651';ctx.fillRect(0,0,W,H);
  // shoreline and sea
- ctx.fillStyle='#167f9c';ctx.fillRect(0,0,W,177);
- ctx.fillStyle='#d5c18c';ctx.fillRect(0,177,W,19);
+ ctx.fillStyle='#167f9c';ctx.fillRect(0,0,W,69);
+ ctx.fillStyle='#d5c18c';ctx.fillRect(0,69,W,19);
  // street grid
  ctx.fillStyle='#303a40';
  for(let x=-180;x<=180;x+=60)ctx.fillRect((x+260)*scale-5,0,10,H);
