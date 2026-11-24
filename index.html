@@ -26,12 +26,12 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 003</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 004</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Y 0</div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicle &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>A new build of the coastal city prototype. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city now has mouse-look pointer lock, solid building and vehicle collisions, clearer road layouts, improved swimming, and a live minimap. It is still a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 004 adds sharper mouse steering, less camera lag, varied buildings and recognisable city landmarks. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city now has mouse-look pointer lock, solid building and vehicle collisions, clearer road layouts, improved swimming, and a live minimap. It is still a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -49,30 +49,32 @@ const ocean=box(520,.12,180,mats.water,0,-.12,-245);ocean.receiveShadow=false;
 const waterSurface=0;
 const beach=box(520,.35,27,mats.sand,0,-.05,-142);
 const roadMat=mats.asphalt;
-function road(x,z,w,d){box(w,.18,d,roadMat,x,.02,z);if(w>d){for(let a=-w/2+5;a<w/2-4;a+=9)box(3,.025,.18,mats.line,x+a,.12,z)}else{for(let a=-d/2+5;a<d/2-4;a+=9)box(.18,.025,3,mats.line,x,.12,z+a)}}
+function road(x,z,w,d){const y=(w>d?.035:.02);box(w,.18,d,roadMat,x,y,z);if(w>d){for(let a=-w/2+5;a<w/2-4;a+=9)box(3,.025,.18,mats.line,x+a,y+.10,z)}else{for(let a=-d/2+5;a<d/2-4;a+=9)box(.18,.025,3,mats.line,x,y+.10,z+a)}}
 for(let x=-180;x<=180;x+=60){road(x,0,13,350);box(3,.16,350,mats.side,x-8,.03,0);box(3,.16,350,mats.side,x+8,.03,0)}
 for(let z=-120;z<=180;z+=60){road(0,z,390,13);box(390,.16,3,mats.side,0,.03,z-8);box(390,.16,3,mats.side,0,.03,z+8)}
 // Buildings are placed inside city blocks, never over the road lanes.
 const buildingMats=[0xc5b8a4,0x9babb2,0xd1c6b4,0x7d9299,0xd6d0c5,0xb2a18c,0x78858a].map(c=>mat(c));
 const windowMat=new THREE.MeshStandardMaterial({color:0x83b9c7,emissive:0x183947,roughness:.22,metalness:.25});
-let seed=29;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+let seed=(Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 const buildingColliders=[];
 function makeBuilding(x,z,w,d,h,style=0){
  const material=buildingMats[style%buildingMats.length];
- box(w+.8,.35,d+.8,mat(0x77766d),x,.17,z);
- box(w,h,d,material,x,h/2+.35,z);
- box(w+.5,.45,d+.5,mat(0x505b60),x,h+.55,z);
+ box(w+.8,.30,d+.8,mat(0x77766d),x,.15,z);
+ box(w,h,d,material,x,h/2+.32,z);
+ box(w+.5,.35,d+.5,mat(0x505b60),x,h+.665,z);
  // Recessed-looking windows on the two street-facing sides
  const floors=Math.max(2,Math.floor(h/3.1));
  for(let f=0;f<floors;f++){
   for(let side=-1;side<=1;side++){
-   box(1.45,1.45,.07,windowMat,x+side*(w/3),2+f*3.1,z+d/2+.045);
-   box(.07,1.45,1.45,windowMat,x+w/2+.045,2+f*3.1,z+side*(d/3));
+   box(1.35,1.35,.045,windowMat,x+side*(w/3),2+f*3.1,z+d/2+.035);
+   box(.045,1.35,1.35,windowMat,x+w/2+.035,2+f*3.1,z+side*(d/3));
   }
  }
  // Shopfront trim and a detailed roof unit
  if(h<15){box(w*.72,.22,.12,mat(0x384c54),x,.9,z+d/2+.1);box(w*.22,.8,.2,mat(0x27343b),x,.65,z+d/2+.17)}
- box(w*.24,.7,d*.22,mat(0x68777a),x-w*.22,h+.92,z-d*.2);
+ box(w*.24,.7,d*.22,mat(0x68777a),x-w*.22,h+1.02,z-d*.2);
+ if(h<18){box(w*.78,.22,.7,mat(style%2?0x9d4938:0x315c78),x,.82,z+d/2+.38);box(.18,.85,.18,mat(0x343b3c),x-w*.42,.42,z+d/2+.38)}
+ if(w>13&&h>18){for(let balcony=-1;balcony<=1;balcony++){box(2.8,.12,.75,mat(0x59676b),x+balcony*w*.29,3.0,z+d/2+.42);box(2.8,.5,.08,mat(0x879a9b),x+balcony*w*.29,3.3,z+d/2+.75)}}
  buildingColliders.push({minX:x-w/2-.5,maxX:x+w/2+.5,minZ:z-d/2-.5,maxZ:z+d/2+.5});
 }
 for(let x=-150;x<=150;x+=60){
@@ -95,6 +97,12 @@ const pole=mat(0x303b40),lamp=mat(0xffe4a6,.4);
 for(let x=-180;x<=180;x+=60)for(let z=-115;z<=180;z+=60){box(.22,6,.22,pole,x+10,3,z+10);box(2,.18,.18,pole,x+11,5.8,z+10);box(.8,.18,.7,lamp,x+12,5.7,z+10)}
 // Park plaza and waterfront promenade
 box(80,.25,42,mat(0xc5bda7),-130,.05,80);for(let i=0;i<12;i++)tree(-165+(i%6)*13,64+Math.floor(i/6)*30,.65);
+// Distinct landmarks: marina pier, sports court, fuel stop and a small plaza fountain.
+box(72,.45,15,mat(0x806b50),-70,.12,-174);for(let x=-102;x<=-38;x+=8){box(.25,.7,.25,mat(0x4b514e),x,.55,-180);box(.25,.7,.25,mat(0x4b514e),x,.55,-168)}
+for(let x=-95;x<=-45;x+=10)box(1.2,.18,1.2,mat(0x6b7a7b),x,.5,-174);
+box(38,.18,24,mat(0x3b6975),150,.08,85);box(34,.03,20,mat(0xd7d1b8),150,.19,85);box(.18,.04,20,mat(0xf4e8bd),150,.22,85);box(34,.04,.18,mat(0xf4e8bd),150,.22,85);
+box(25,.22,18,mat(0xb7b0a0),150,.1,-35);box(12,.08,7,mat(0x273b3e),150,.25,-35);box(2,.6,2,mat(0xffd36b),150,.6,-35);
+const fountain= new THREE.Mesh(new THREE.CylinderGeometry(4,4,.5,24),mat(0x9a9c96));fountain.position.set(-130,.35,80);scene.add(fountain);const fountainWater=new THREE.Mesh(new THREE.CylinderGeometry(3.5,3.5,.12,24),mat(0x3c9db2,.2,.1));fountainWater.position.set(-130,.66,80);scene.add(fountainWater);
 for(let x=-240;x<=240;x+=12)box(1.3,.3,1.3,mat(0x9c9a8b),x,.18,-130);
 // Player
 const player=new THREE.Group();scene.add(player);
@@ -107,9 +115,8 @@ let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocit
 const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
 addEventListener('keyup',e=>keys[e.code]=false);
 renderer.domElement.addEventListener('click',()=>{if($('start').style.display==='none'&&!locked)renderer.domElement.requestPointerLock()});
-document.addEventListener('pointerlockchange',()=>{$('lockHint').style.display=locked?'none':($('start').style.display==='none'?'block':'none')});
-document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
-document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0022;pitch=Math.max(-.65,Math.min(.42,pitch-e.movementY*.0018))}});
+document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer.domElement;$('lockHint').style.display=locked?'none':($('start').style.display==='none'?'block':'none')});
+document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0032;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0027))}});
 $('play').onclick=()=>{$('start').style.display='none';renderer.domElement.requestPointerLock()};
 const cars=[];const carColors=[0xb83d36,0x315c83,0xd5d1c4,0x313b43,0xc18b35,0x47755d];
 function makeCar(x,z,color,angle=0,playerCar=false){
@@ -142,7 +149,7 @@ function update(dt){
   $('mode').textContent='DRIVING';$('speed').textContent='SPEED  '+Math.round(Math.abs(c.speed)*3.6)+' km/h';
  }else{
   const p=player.position;swimming=waterAt(p);const sp=swimming?3.5:(keys.ShiftLeft?10:6);
-  const move=new THREE.Vector3();if(keys.KeyW)move.add(forward);if(keys.KeyS)move.sub(forward);if(keys.KeyD)move.add(right);if(keys.KeyA)move.sub(right);if(move.lengthSq()>0){move.normalize();p.addScaledVector(move,sp*dt);player.rotation.y=Math.atan2(-move.x,-move.z);walkT+=dt*10;legL.rotation.x=Math.sin(walkT)*.65;legR.rotation.x=-Math.sin(walkT)*.65;armL.rotation.x=-Math.sin(walkT)*.4;armR.rotation.x=Math.sin(walkT)*.4}else{legL.rotation.x=legR.rotation.x=armL.rotation.x=armR.rotation.x=0}
+  const move=new THREE.Vector3();if(keys.KeyW)move.add(forward);if(keys.KeyS)move.sub(forward);if(keys.KeyD)move.add(right);if(keys.KeyA)move.sub(right);if(move.lengthSq()>0){move.normalize();p.addScaledVector(move,sp*dt);player.rotation.y=yaw;walkT+=dt*10;legL.rotation.x=Math.sin(walkT)*.65;legR.rotation.x=-Math.sin(walkT)*.65;armL.rotation.x=-Math.sin(walkT)*.4;armR.rotation.x=Math.sin(walkT)*.4}else{legL.rotation.x=legR.rotation.x=armL.rotation.x=armR.rotation.x=0}
   if(swimming){velocityY+=(keys.Space?5:(keys.ShiftLeft?-1.5:-.45))*dt;velocityY*=Math.pow(.94,dt*60);p.y+=velocityY*dt;p.y=Math.max(-2.4,Math.min(.05,p.y));$('barWrap').style.display='block';underwater=p.y<-.8?Math.min(1,underwater+dt*.12):Math.max(0,underwater-dt*.6);$('bar').style.width=(100-underwater*100)+'%';$('mode').textContent=p.y<-.8?'UNDERWATER':'SWIMMING'}
   else{p.y+=velocityY*dt;velocityY-=19*dt;if(p.y<=0){p.y=0;velocityY=0;onGround=true}else onGround=false;$('barWrap').style.display='none';underwater=0;$('mode').textContent='ON FOOT'}
   p.x=Math.max(-245,Math.min(245,p.x));p.z=Math.max(-340,Math.min(225,p.z));resolvePlayerBuildings();
@@ -155,7 +162,8 @@ function update(dt){
  }
  const target=inCar?inCar.group.position:player.position;const camDist=inCar?10:7.5;const camHeight=inCar?4.1:3.2;
  const desired=new THREE.Vector3(target.x+Math.sin(yaw)*camDist,target.y+camHeight+pitch*5,target.z+Math.cos(yaw)*camDist);
- camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(target.x,target.y+(inCar?1.1:1.55),target.z);
+ camera.position.copy(desired);camera.lookAt(target.x,target.y+(inCar?1.1:1.55),target.z);
+ if(!inCar)player.rotation.y=yaw;
  $('coords').textContent='X '+Math.round(target.x)+'  Z '+Math.round(target.z);
  $('location').textContent=cityName(target);
  const c=nearestCar();const prompt=inCar?'E  EXIT VEHICLE':c?'E  ENTER VEHICLE':swimming?'SPACE  SWIM UP':'';
@@ -189,6 +197,10 @@ function drawMinimap(){
  ctx.fillStyle='#303a40';
  for(let x=-180;x<=180;x+=60)ctx.fillRect((x+260)*scale-5,0,10,H);
  for(let z=-120;z<=180;z+=60)ctx.fillRect(0,(z+260)*scale-5,W,10);
+ // Unique landmarks are marked separately so the map is not just a repeated grid.
+ ctx.fillStyle='#d2b56e';ctx.fillRect((-106+260)*scale,(-182+260)*scale,72*scale,16*scale);
+ ctx.fillStyle='#c9d8dd';ctx.fillRect((131+260)*scale,(73+260)*scale,38*scale,24*scale);
+ ctx.fillStyle='#d2d0bd';ctx.beginPath();ctx.arc((-130+260)*scale,(80+260)*scale,4*scale,0,Math.PI*2);ctx.fill();
  // building footprints
  ctx.fillStyle='#aeb9b6';
  for(const b of buildingColliders)ctx.fillRect((b.minX+260)*scale,(b.minZ+260)*scale,(b.maxX-b.minX)*scale,(b.maxZ-b.minZ)*scale);
