@@ -225,6 +225,7 @@ dirtRoad([[-330,365],[-265,325],[-205,285],[-130,270],[-55,295],[25,345]],7);
 dirtRoad([[-420,185],[-365,205],[-315,230],[-260,250],[-215,260]],7);
 dirtRoad([[70,270],[125,295],[175,320],[215,345]],6);
 // Airport access road, airport grounds and facilities.
+const airportPole=mat(0x303b40);
 const airportRoadPath=[[220,160],[232,190],[250,220],[275,245],[310,260],[350,275],[382,298]];
 const airportRoadMat=mat(0x303b42);
 for(let i=0;i<airportRoadPath.length-1;i++){
@@ -247,7 +248,7 @@ box(44,4,.22,mat(0x47717c),392,4.3,295.35);
 for(let x=375;x<=409;x+=6)box(3.8,3.4,.12,windowMat,x,4.1,295.2);
 box(52,.65,22,mat(0x515d60),392,9.25,305);
 box(15,.35,5,concrete,374,1,291);
-for(let x=369;x<=415;x+=12)box(.35,2.4,.35,pole,x,1.2,291);
+for(let x=369;x<=415;x+=12)box(.35,2.4,.35,airportPole,x,1.2,291);
 // Control tower with glazed observation room.
 box(5,17,5,mat(0xb8b8ad),420,8.5,350);
 box(9,3.2,9,mat(0x344f5a),420,17.9,350);
