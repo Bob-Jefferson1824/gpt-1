@@ -9,6 +9,9 @@
 #hud{position:fixed;inset:0;pointer-events:none;color:#fff;text-shadow:0 2px 5px #000b}
 #brand{position:absolute;top:22px;left:25px;font-size:20px;font-weight:900;letter-spacing:2px}#brand small{display:block;font-size:10px;letter-spacing:3px;color:#a8d8e8;margin-top:3px}
 #stats{position:absolute;top:22px;right:24px;text-align:right;font-size:12px;line-height:1.8;background:#07131dbb;padding:12px 16px;border:1px solid #ffffff22;border-radius:9px;min-width:150px}
+#vitals{position:absolute;left:25px;top:88px;width:190px;background:#07131dbb;padding:9px 11px;border:1px solid #ffffff22;border-radius:8px;font-size:10px;letter-spacing:1px}
+.vital{height:7px;background:#172832;border-radius:8px;overflow:hidden;margin:4px 0 8px}.vital span{display:block;height:100%;width:100%;transition:width .12s}
+#healthFill{background:#e45b5b}#staminaFill{background:#e8c45b}
 #help{position:absolute;left:24px;bottom:24px;background:#07131dcc;border:1px solid #ffffff26;border-radius:10px;padding:12px 15px;font-size:12px;line-height:1.8}
 #help b{color:#9fe1ff}#location{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:2px;font-weight:800;color:#dff8ff}
 #prompt{position:absolute;bottom:100px;left:50%;transform:translateX(-50%);padding:10px 16px;background:#07131ddd;border:1px solid #9fe1ff66;border-radius:8px;font-size:13px;display:none}
@@ -27,8 +30,9 @@
 <body>
 <div id="hud">
  <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 008</small></div>
- <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Y 0</div></div>
- <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicle &nbsp; <b>F / LEFT CLICK</b> Punch (2 hits) &nbsp; <b>ESC</b> Release mouse</div>
+ <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
+ <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
+ <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
 <div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 006 fixes the coastal road boundary and minimap road drawing. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city uses generated irregular streets, roads that stop before the beach and ocean, accurate minimap road lengths, pointer-lock mouse look, and varied neighbourhood blocks. It is still a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
@@ -45,7 +49,7 @@ const mat=(c,r=.85,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,met
 const mats={asphalt:mat(0x303b42),side:mat(0xb6b7ad),line:mat(0xe8dfc1),grass:mat(0x668b59),sand:mat(0xd6c18d),water: new THREE.MeshStandardMaterial({color:0x167f9c,roughness:.38,metalness:.04}),glass: new THREE.MeshStandardMaterial({color:0x9ed8e9,roughness:.18,metalness:.35}),white:mat(0xe7e5d9),dark:mat(0x1c252b)};
 const box=(w,h,d,material,x,y,z,parent=scene)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
 const ground=box(520,1,520,mats.grass,0,-.7,0);ground.receiveShadow=true;
-const ocean=new THREE.Mesh(new THREE.PlaneGeometry(520,180),mats.water);ocean.rotation.x=-Math.PI/2;ocean.position.set(0,-.055,-245);ocean.receiveShadow=false;ocean.castShadow=false;scene.add(ocean);
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(1200,700),new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false}));ocean.rotation.x=-Math.PI/2;ocean.position.set(0,-.055,-430);ocean.receiveShadow=false;ocean.castShadow=false;ocean.frustumCulled=false;scene.add(ocean);
 const waterSurface=0;
 const beach=box(520,.35,26.5,mats.sand,0,-.05,-141.75);
 const roadMat=mats.asphalt;
@@ -156,6 +160,7 @@ const legL=box(.32,.85,.35,pants,-.25,.55,0,player),legR=box(.32,.85,.35,pants,.
 const armL=box(.25,.9,.28,skin,-.62,1.48,0,player),armR=box(.25,.9,.28,skin,.62,1.48,0,player);
 player.position.set(0,0,0);
 let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0;
+let health=100,stamina=100,drownTimer=0,deadTimer=0;
 const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='KeyF')punch();if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
 addEventListener('keyup',e=>keys[e.code]=false);
 function requestMouseLock(){
@@ -176,45 +181,54 @@ function makeCar(x,z,color,angle=0,playerCar=false){
  const body=box(2.15,.72,4.2,mat(color,.4,.25),0,.72,0,g);box(1.55,.72,2.05,mats.glass,0,1.38,-.12,g);box(1.85,.12,1.2,mat(0x242c31),0,1.82,-.1,g);
  for(const wx of [-1.12,1.12])for(const wz of [-1.35,1.35]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.25,16),mat(0x141719));wheel.rotation.z=Math.PI/2;wheel.position.set(wx,.43,wz);g.add(wheel)}
  for(const sx of [-.7,.7]){box(.28,.18,.08,mat(0xffe6ae),sx,.82,2.12,g);box(.3,.18,.08,mat(0xd63b30),sx,.82,-2.12,g)}
- const c={group:g,speed:0,angle,playerCar};cars.push(c);return c;
+ const occupant=new THREE.Group();const driverBody=box(.42,.62,.28,mat(0x283e52),0,1.12,-.1,occupant);const driverHead=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),skin);driverHead.position.set(0,1.55,-.1);occupant.add(driverHead);g.add(occupant);
+ const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,sinking:false,sinkTime:0,submerged:0,cruise:7+rand()*4};cars.push(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
 for(let i=0;i<18;i++){if(i%2===0){const roadX=drivableXs[Math.floor(rand()*drivableXs.length)];const z=-105+rand()*265;makeCar(roadX,z,carColors[i%carColors.length],0)}else{const roadZ=drivableZs[Math.floor(rand()*drivableZs.length)];const x=-185+rand()*370;makeCar(x,roadZ,carColors[i%carColors.length],Math.PI/2)}}
-const myCar=makeCar(7,5,0xd64b37,Math.PI,true);
+const myCar=makeCar(7,5,0xd64b37,Math.PI,true);myCar.ai=false;myCar.driver=false;myCar.occupant.visible=false;
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
-for(let i=0;i<32;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const body=box(.48,.9,.32,shirts[i%shirts.length],0,1,0,g);const h=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),skin);h.position.y=1.58;g.add(h);g.position.set(x,0,z);scene.add(g);people.push({g,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.g.visible=false;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,1,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=1.1;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
+for(let i=0;i<32;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const body=box(.48,.9,.32,shirts[i%shirts.length],0,1,0,g);const h=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),skin);h.position.y=1.58;g.add(h);g.position.set(x,0,z);scene.add(g);people.push({g,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=1.1;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
-function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.visible=true;inCar=null;notice('Exited vehicle');return}const c=nearestCar();if(c){inCar=c;player.visible=false;notice('Vehicle entered');}}
+function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.occupant.visible=false;c.speed=0;c.ai=false;notice('Driver pulled out. Vehicle taken.')}inCar=c;player.visible=false;notice(c.ai?'Vehicle entered':'Vehicle taken');}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
 function waterAt(p){return p.z < -158 && Math.abs(p.x)<258}
+function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)}
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 const clock=new THREE.Clock();
 function update(dt){
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+ // AI traffic follows its lane and steers around the city independently.
+ for(const c of cars){if(c===inCar||!c.ai||c.sinking)continue;c.speed+=(c.cruise-c.speed)*dt*.7;c.angle+=Math.sin(clock.elapsedTime*.22+c.group.position.x*.03)*dt*.045;const nx=c.group.position.x-Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z-Math.cos(c.angle)*c.speed*dt;if(Math.abs(nx)>215||nz<-115||nz>175||carBlocked(c,nx,nz)){c.angle+=Math.PI*.75;c.speed*=.65}else{c.group.position.x=nx;c.group.position.z=nz}c.group.rotation.y=c.angle;}
  if(inCar){
   const c=inCar,drive=(keys.KeyW?1:0)-(keys.KeyS?1:0),steer=(keys.KeyA?1:0)-(keys.KeyD?1:0);
   c.speed+=drive*dt*19;c.speed*=Math.pow(.986,dt*60);c.speed=Math.max(-12,Math.min(34,c.speed));
   c.angle+=steer*dt*(.85+Math.abs(c.speed)*.035)*Math.sign(c.speed||1);c.group.rotation.y=c.angle;
   const nx=c.group.position.x-Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z-Math.cos(c.angle)*c.speed*dt;
   if(Math.abs(nx)<245&&nz>-340&&nz<230&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz}
+  if(waterAt(c.group.position)){c.sinking=true;c.sinkTime+=dt;c.speed*=Math.pow(.9,dt*60);c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);c.submerged=Math.min(1,c.submerged+dt*.2);if(c===inCar&&c.sinkTime>2.2){player.position.set(c.group.position.x,0,c.group.position.z+3);player.visible=true;inCar=null;drownTimer=0;notice('Car sinking! Get out!');}}
   player.position.copy(c.group.position);yaw=c.angle;for(const n of people){if(n.down||Math.abs(c.speed)<4)continue;const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z;if(Math.hypot(dx,dz)<2.65){knockOutPedestrian(n,new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle)).multiplyScalar(1.1));c.speed*=.78;}}
   $('mode').textContent='DRIVING';$('speed').textContent='SPEED  '+Math.round(Math.abs(c.speed)*3.6)+' km/h';
  }else{
-  const p=player.position;swimming=waterAt(p);const sp=swimming?3.5:(keys.ShiftLeft?10:6);
+  const p=player.position;swimming=waterAt(p);const sprinting=keys.ShiftLeft&&stamina>1&&!swimming;const sp=swimming?3.5:(sprinting?10:6);
+  if(sprinting&&moveInputActive())stamina=Math.max(0,stamina-dt*24);else stamina=Math.min(100,stamina+dt*(swimming?7:17));
   const move=new THREE.Vector3();if(keys.KeyW)move.add(forward);if(keys.KeyS)move.sub(forward);if(keys.KeyD)move.add(right);if(keys.KeyA)move.sub(right);if(move.lengthSq()>0){move.normalize();p.addScaledVector(move,sp*dt);player.rotation.y=yaw;walkT+=dt*10;legL.rotation.x=Math.sin(walkT)*.65;legR.rotation.x=-Math.sin(walkT)*.65;armL.rotation.x=-Math.sin(walkT)*.4;armR.rotation.x=Math.sin(walkT)*.4}else{legL.rotation.x=legR.rotation.x=armL.rotation.x=armR.rotation.x=0}
-  if(swimming){velocityY+=(keys.Space?5:(keys.ShiftLeft?-1.5:-.45))*dt;velocityY*=Math.pow(.94,dt*60);p.y+=velocityY*dt;p.y=Math.max(-2.4,Math.min(.05,p.y));$('barWrap').style.display='block';underwater=p.y<-.8?Math.min(1,underwater+dt*.12):Math.max(0,underwater-dt*.6);$('bar').style.width=(100-underwater*100)+'%';$('mode').textContent=p.y<-.8?'UNDERWATER':'SWIMMING'}
-  else{p.y+=velocityY*dt;velocityY-=19*dt;if(p.y<=0){p.y=0;velocityY=0;onGround=true}else onGround=false;$('barWrap').style.display='none';underwater=0;$('mode').textContent='ON FOOT'}
+  if(swimming){velocityY+=(keys.Space?5:(keys.ShiftLeft?-1.5:-.45))*dt;velocityY*=Math.pow(.94,dt*60);p.y+=velocityY*dt;p.y=Math.max(-2.4,Math.min(.05,p.y));$('barWrap').style.display='block';underwater=p.y<-.8?Math.min(1,underwater+dt*.12):Math.max(0,underwater-dt*.6);$('bar').style.width=(100-underwater*100)+'%';$('mode').textContent=p.y<-.8?'UNDERWATER':'SWIMMING';if(p.y<-.8){drownTimer+=dt;if(drownTimer>3.5)health=Math.max(0,health-dt*18)}else drownTimer=Math.max(0,drownTimer-dt*1.5)}
+  else{p.y+=velocityY*dt;velocityY-=19*dt;if(p.y<=0){p.y=0;velocityY=0;onGround=true}else onGround=false;$('barWrap').style.display='none';underwater=0;drownTimer=0;$('mode').textContent='ON FOOT'}
   p.x=Math.max(-245,Math.min(245,p.x));p.z=Math.max(-340,Math.min(225,p.z));resolvePlayerBuildings();
   $('speed').textContent='SPEED  '+(move.lengthSq()?Math.round(sp*3.6):0)+' km/h';
  }
  // Arcade hit particles fade quickly and never leave marks.
  hitCooldown=Math.max(0,hitCooldown-dt);for(let i=hitParticles.length-1;i>=0;i--){const p=hitParticles[i];p.life-=dt;p.vel.y-=9*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.rotation.x+=dt*8;p.mesh.rotation.z+=dt*6;p.mesh.scale.setScalar(Math.max(.01,p.life));if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();hitParticles.splice(i,1)}}
  // Pedestrians can be knocked out by punches or moving cars, then respawn elsewhere.
- for(const n of people){if(n.down){n.respawn-=dt;if(n.respawn<=0){let sx=0,sz=0,found=false;for(let tries=0;tries<30;tries++){sx=-210+rand()*420;sz=-112+rand()*300;if(circleHitsBuilding(sx,sz,1.0))continue;if(Math.hypot(sx-player.position.x,sz-player.position.z)<18)continue;if(cars.some(c=>Math.hypot(sx-c.group.position.x,sz-c.group.position.z)<9))continue;found=true;break}if(!found){n.respawn=.5;continue}n.g.position.set(sx,0,sz);n.g.visible=true;n.health=2;n.down=false;n.hitVel.set(0,0,0);n.hitTimer=0;n.dir=rand()*Math.PI*2;n.phase=rand()*8}continue}if(n.hitTimer>0){n.hitTimer=Math.max(0,n.hitTimer-dt);n.g.position.addScaledVector(n.hitVel,dt);n.hitVel.multiplyScalar(Math.pow(.08,dt));}else{n.hitVel.set(0,0,0)}let flee=new THREE.Vector3();for(const c of cars){const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z,dist=Math.hypot(dx,dz);if(dist<10&&Math.abs(c.speed)>2)flee.add(new THREE.Vector3(dx,0,dz).normalize().multiplyScalar((10-dist)*1.5))}
+ for(const n of people){if(n.down){n.respawn-=dt;n.knockTimer=Math.max(0,n.knockTimer-dt);if(n.knockTimer<=0)n.g.visible=false;if(n.respawn<=0){let sx=0,sz=0,found=false;for(let tries=0;tries<30;tries++){sx=-210+rand()*420;sz=-112+rand()*300;if(circleHitsBuilding(sx,sz,1.0))continue;if(Math.hypot(sx-player.position.x,sz-player.position.z)<18)continue;if(cars.some(c=>Math.hypot(sx-c.group.position.x,sz-c.group.position.z)<9))continue;found=true;break}if(!found){n.respawn=.5;continue}n.g.position.set(sx,0,sz);n.g.rotation.set(0,0,0);n.g.visible=true;n.health=2;n.down=false;n.hitVel.set(0,0,0);n.hitTimer=0;n.dir=rand()*Math.PI*2;n.phase=rand()*8}continue}if(n.hitTimer>0){n.hitTimer=Math.max(0,n.hitTimer-dt);n.g.position.addScaledVector(n.hitVel,dt);n.hitVel.multiplyScalar(Math.pow(.08,dt));}else{n.hitVel.set(0,0,0)}let flee=new THREE.Vector3();for(const c of cars){const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z,dist=Math.hypot(dx,dz);if(dist<10&&Math.abs(c.speed)>2)flee.add(new THREE.Vector3(dx,0,dz).normalize().multiplyScalar((10-dist)*1.5))}
   if(flee.lengthSq()>0){n.g.position.addScaledVector(flee.normalize(),dt*5);n.dir=Math.atan2(-flee.x,-flee.z)}else{n.phase+=dt;n.g.position.x+=Math.sin(n.phase+n.dir)*dt*.8;n.g.position.z+=Math.cos(n.phase+n.dir)*dt*.8}
   n.g.position.x=Math.max(-230,Math.min(230,n.g.position.x));n.g.position.z=Math.max(-125,Math.min(200,n.g.position.z));resolvePedestrianBuildings(n);
  }
+ // Health and stamina HUD; death is a brief fade/respawn, with no graphic effects.
+ if(health<=0){health=0;if(deadTimer<=0){deadTimer=2.2;notice('You are exhausted. Respawning...')}deadTimer-=dt;if(deadTimer<=0){health=100;stamina=100;drownTimer=0;underwater=0;player.position.set(0,0,0);player.visible=true;if(inCar){inCar=null}velocityY=0;}}
+ $('healthFill').style.width=health+'%';$('healthText').textContent=Math.ceil(health);$('staminaFill').style.width=stamina+'%';$('staminaText').textContent=Math.ceil(stamina);
  const target=inCar?inCar.group.position:player.position;const camDist=inCar?10:7.5;const camHeight=inCar?4.1:3.2;
  const desired=new THREE.Vector3(target.x+Math.sin(yaw)*camDist,target.y+camHeight+pitch*5,target.z+Math.cos(yaw)*camDist);
  camera.position.copy(desired);camera.lookAt(target.x,target.y+(inCar?1.1:1.55),target.z);
