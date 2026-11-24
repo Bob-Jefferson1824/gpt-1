@@ -529,7 +529,7 @@ function update(dt){
    if(plane){
     c.speed=Math.max(0,Math.min(64,c.speed+throttle*8.5*dt));c.speed*=Math.pow(.997,dt*60);c.angle+=steer*dt*(.25+Math.min(1,c.speed/35)*.5);
     const airborne=c.altitude>floor+.45,pitchInput=(keys.Space?1:0)-(keys.ShiftLeft?1:0),pitchTarget=pitchInput*(c.speed>25?.22:.035);c.pitch+=(pitchTarget-c.pitch)*Math.min(1,dt*2.2);
-    if(!airborne){c.altitude=floor;c.verticalSpeed=0;if(c.speed>29&&c.pitch>.08)c.verticalSpeed=Math.min(7,c.verticalSpeed+(c.speed-29)*.18*dt)}
+    if(!airborne){c.altitude=floor;c.verticalSpeed=0;if(c.speed>29&&c.pitch>.08){c.verticalSpeed=Math.min(7,c.verticalSpeed+(c.speed-29)*.18*dt);c.altitude+=c.verticalSpeed*dt}}
     else{const lift=(c.speed*c.speed/64)*Math.max(0,Math.sin(Math.max(0,c.pitch)))*1.55;c.verticalSpeed+=(lift-9.8*.42)*dt;c.verticalSpeed=Math.max(-12,Math.min(12,c.verticalSpeed));c.altitude+=c.verticalSpeed*dt;if(c.altitude<=floor){c.altitude=floor;c.verticalSpeed=0;c.pitch=Math.max(0,c.pitch)}}
     c.group.rotation.set(-c.pitch,c.angle,Math.sin(steer)*Math.min(.18,Math.abs(c.speed)/90),'YXZ');
    }else{
