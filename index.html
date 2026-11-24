@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 020</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 021</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 020 adds tree collisions, pedestrian animations and terrain-safe roads.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 021 improves traffic spacing, lane discipline and junction safety.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -256,20 +256,26 @@ function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
  const occupant=new THREE.Group(),driverParts=makeHumanoid(occupant,mat(0x283e52));occupant.visible=false;g.add(occupant);
  g.scale.set(1.1,1.08,1.1);
  const carNames={compact:'PIPER COMPACT',sedan:'SEABRIGHT SEDAN',suv:'IRONCLAD SUV',van:'CITYLINE VAN',pickup:'RANGER PICKUP'};
- const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,name:carNames[type]||'SEDAN',frontView:new THREE.Vector3(0,v.h+.48,v.l*.30),sinking:false,sinkTime:0,submerged:0,cruise:8+rand()*2};
+ const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,length:v.l,name:carNames[type]||'SEDAN',frontView:new THREE.Vector3(0,v.h+.48,v.l*.30),sinking:false,sinkTime:0,submerged:0,cruise:8+rand()*2};
  cars.push(c);applyCarTerrain(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
 const trafficTypes=['compact','sedan','suv','van','pickup'];
 for(let i=0;i<36;i++){
- const seg=roadSegments[Math.floor(rand()*roadSegments.length)],dir=rand()<.5?1:-1;
- if(seg.orientation==='v'){
-  const laneX=seg.x+(dir>0?-2.3:2.3),z=seg.z+(rand()-.5)*(seg.d-18),angle=dir>0?0:Math.PI;
-  makeCar(laneX,z,carColors[i%carColors.length],angle,false,{orientation:'v',fixed:laneX,min:seg.z-seg.d/2+5,max:seg.z+seg.d/2-5,dir},trafficTypes[i%trafficTypes.length]);
- }else{
-  const laneZ=seg.z+(dir>0?2.3:-2.3),x=seg.x+(rand()-.5)*(seg.w-18),angle=dir>0?Math.PI/2:-Math.PI/2;
-  makeCar(x,laneZ,carColors[i%carColors.length],angle,false,{orientation:'h',fixed:laneZ,min:seg.x-seg.w/2+5,max:seg.x+seg.w/2-5,dir},trafficTypes[i%trafficTypes.length]);
+ let spawn=null;
+ for(let attempt=0;attempt<24&&!spawn;attempt++){
+  const seg=roadSegments[Math.floor(rand()*roadSegments.length)],dir=rand()<.5?1:-1;
+  if(seg.orientation==='v'){
+   const laneX=seg.x+(dir>0?-2.3:2.3),z=seg.z+(rand()-.5)*(seg.d-22);
+   if(cars.some(c=>Math.hypot(c.group.position.x-laneX,c.group.position.z-z)<8))continue;
+   spawn={x:laneX,z,angle:dir>0?0:Math.PI,lane:{orientation:'v',fixed:laneX,min:seg.z-seg.d/2+6,max:seg.z+seg.d/2-6,dir}};
+  }else{
+   const laneZ=seg.z+(dir>0?2.3:-2.3),x=seg.x+(rand()-.5)*(seg.w-22);
+   if(cars.some(c=>Math.hypot(c.group.position.x-x,c.group.position.z-laneZ)<8))continue;
+   spawn={x,z:laneZ,angle:dir>0?Math.PI/2:-Math.PI/2,lane:{orientation:'h',fixed:laneZ,min:seg.x-seg.w/2+6,max:seg.x+seg.w/2-6,dir}};
+  }
  }
+ if(spawn)makeCar(spawn.x,spawn.z,carColors[i%carColors.length],spawn.angle,false,spawn.lane,trafficTypes[i%trafficTypes.length]);
 }
 const myCar=makeCar(7,5,0xd64b37,Math.PI,true);myCar.ai=false;myCar.driver=false;myCar.occupant.visible=false;
 // Pedestrians, harmless traffic-aware crowd
@@ -304,7 +310,7 @@ function update(dt){
    const ahead=((vertical?other.group.position.z:other.group.position.x)-coord)*lane.dir;
    if(ahead>0&&ahead<nearestGap)nearestGap=ahead;
   }
-  if(nearestGap<15)targetSpeed=Math.min(targetSpeed,Math.max(0,(nearestGap-4)*.85));
+  if(nearestGap<19)targetSpeed=Math.min(targetSpeed,Math.max(0,(nearestGap-7)*.9));
   // Simple timed right-of-way at crossings prevents perpendicular traffic deadlocks.
   // Each intersection alternates direction; vehicles stop before the junction on red.
   for(const cross of roadSegments){
@@ -317,21 +323,26 @@ function update(dt){
    const phase=((trafficClock+offset)%cycle);
    const verticalGreen=phase<6;
    const green=vertical?verticalGreen:!verticalGreen;
-   if(!green)targetSpeed=0;
-   else targetSpeed=Math.min(targetSpeed,Math.max(3.5,Math.min(7,toCross*.8)));
+   let junctionOccupied=false;
+   for(const other of cars){if(other===c||other.sinking)continue;if(Math.hypot(other.group.position.x-ix,other.group.position.z-iz)<6.2){junctionOccupied=true;break}}
+   if(!green||junctionOccupied)targetSpeed=0;
+   else targetSpeed=Math.min(targetSpeed,Math.max(2.5,Math.min(6,toCross*.65)));
   }
   const accel=targetSpeed<c.speed?22:4.2;
   c.speed+=Math.max(-accel*dt,Math.min(accel*dt,targetSpeed-c.speed));
   const step=c.speed*dt*lane.dir;
   let next=coord+step;
   if(next<lane.min||next>lane.max){
-   lane.dir*=-1;
-   c.speed=Math.min(c.speed,2.5);
-   next=coord+c.speed*dt*lane.dir;
+   // Keep each vehicle travelling in its assigned direction. Reversing in the
+   // same lane caused head-on traffic; recycle it to the far end when clear.
+   const wrap=lane.dir>0?lane.min+5:lane.max-5;
+   const wx=vertical?lane.fixed:wrap,wz=vertical?wrap:lane.fixed;
+   if(!carBlocked(c,wx,wz)){c.group.position.x=wx;c.group.position.z=wz;next=wrap}
+   else{next=coord;c.speed=0}
   }
   const tx=vertical?lane.fixed:next,tz=vertical?next:lane.fixed;
   if(!carBlocked(c,tx,tz)){c.group.position.x=tx;c.group.position.z=tz}
-  else c.speed=Math.max(0,c.speed-15*dt);
+  else c.speed=Math.max(0,c.speed-20*dt);
   c.angle=vertical?(lane.dir>0?0:Math.PI):(lane.dir>0?Math.PI/2:-Math.PI/2);
   applyCarTerrain(c);
   if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0}
@@ -438,7 +449,7 @@ function resolvePlayerBuildings(){
 function resolvePedestrianBuildings(n){const p=n.g.position,r=.78;for(let pass=0;pass<2;pass++){for(const b of buildingColliders){const qx=Math.max(b.minX,Math.min(p.x,b.maxX)),qz=Math.max(b.minZ,Math.min(p.z,b.maxZ));let dx=p.x-qx,dz=p.z-qz,d=Math.hypot(dx,dz);if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}}for(const t of treeColliders){let dx=p.x-t.x,dz=p.z-t.z,d=Math.hypot(dx,dz),min=r+t.r;if(d<min){if(d<.001){dx=1;d=1}p.x+=dx/d*(min-d);p.z+=dz/d*(min-d)}}}p.y=terrainHeight(p.x,p.z)}
 function carBlocked(car,x,z){
  if(circleHitsBuilding(x,z,1.65))return true;
- for(const other of cars){if(other===car)continue;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<3.25)return true}
+ for(const other of cars){if(other===car)continue;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<Math.max(4.1,((car.length||4.2)+(other.length||4.2))*.48))return true}
  return false;
 }
 function drawMinimap(){
