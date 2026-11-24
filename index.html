@@ -218,13 +218,13 @@ function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
  // Driver-seat dashboard and steering wheel.
  const dash=mat(0x20282b,.72),seat=mat(0x30383b,.85);
  box(v.cabW*.9,.16,.55,dash,0,v.h+.53,cabZ+v.cabL*.25,g);
- const steering=new THREE.Mesh(new THREE.TorusGeometry(.25,.035,8,20),trim);steering.position.set(-.48,v.h+.72,cabZ+v.cabL*.31);steering.rotation.y=.08;g.add(steering);
+ const steering=new THREE.Mesh(new THREE.TorusGeometry(.19,.025,8,20),trim);steering.position.set(-v.cabW*.27,v.h+v.cabH*.47,cabZ+v.cabL*.18);steering.rotation.y=0;g.add(steering);
  box(.48,.55,.42,seat,-.48,v.h+.22,cabZ-.05,g);
  // AI driver models are hidden to prevent heads and limbs clipping through the roof.
  const occupant=new THREE.Group(),driverParts=makeHumanoid(occupant,mat(0x283e52));occupant.visible=false;g.add(occupant);
  g.scale.set(1.1,1.08,1.1);
  const carNames={compact:'PIPER COMPACT',sedan:'SEABRIGHT SEDAN',suv:'IRONCLAD SUV',van:'CITYLINE VAN',pickup:'RANGER PICKUP'};
- const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,name:carNames[type]||'SEDAN',sinking:false,sinkTime:0,submerged:0,cruise:9+rand()*3};
+ const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,name:carNames[type]||'SEDAN',cockpit:new THREE.Vector3(-v.cabW*.24,v.h+v.cabH*.46,cabZ+v.cabL*.18),sinking:false,sinkTime:0,submerged:0,cruise:8+rand()*2};
  cars.push(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
@@ -249,8 +249,9 @@ function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTi
 function waterAt(p){return p.z < -158 && Math.abs(p.x)<258}
 function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)}
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
-const clock=new THREE.Clock();
+let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
+ trafficClock+=dt;
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  // Traffic follows its assigned lane, keeps a safe gap, yields to cross traffic,
  // slows at junctions, and accelerates smoothly instead of snapping to full speed.
@@ -272,18 +273,22 @@ function update(dt){
    if(ahead>0&&ahead<nearestGap)nearestGap=ahead;
   }
   if(nearestGap<15)targetSpeed=Math.min(targetSpeed,Math.max(0,(nearestGap-4)*.85));
-  // Yield when a vehicle is already crossing the junction ahead.
+  // Simple timed right-of-way at crossings prevents perpendicular traffic deadlocks.
+  // Each intersection alternates direction; vehicles stop before the junction on red.
   for(const cross of roadSegments){
    if((vertical&&cross.orientation!=='h')||(!vertical&&cross.orientation!=='v'))continue;
    const crossAt=vertical?cross.z:cross.x;
    const toCross=(crossAt-coord)*lane.dir;
-   if(toCross<0||toCross>7)continue;
+   if(toCross<0||toCross>12)continue;
    const ix=vertical?lane.fixed:cross.x,iz=vertical?cross.z:lane.fixed;
-   const occupied=cars.some(other=>other!==c&&!other.sinking&&Math.hypot(other.group.position.x-ix,other.group.position.z-iz)<6.5);
-   if(occupied){targetSpeed=0;break}
-   targetSpeed=Math.min(targetSpeed,5.5);
+   const cycle=12,offset=((Math.abs(Math.round(ix*3+iz*7))%12)/12)*cycle;
+   const phase=((trafficClock+offset)%cycle);
+   const verticalGreen=phase<6;
+   const green=vertical?verticalGreen:!verticalGreen;
+   if(!green)targetSpeed=0;
+   else targetSpeed=Math.min(targetSpeed,Math.max(3.5,Math.min(7,toCross*.8)));
   }
-  const accel=targetSpeed<c.speed?15:5.5;
+  const accel=targetSpeed<c.speed?22:4.2;
   c.speed+=Math.max(-accel*dt,Math.min(accel*dt,targetSpeed-c.speed));
   const step=c.speed*dt*lane.dir;
   let next=coord+step;
@@ -352,10 +357,10 @@ function update(dt){
  if(cameraMode===1){
   // First-person view sits just above the character's eyes or behind the windscreen.
   if(inCar){
-   const cockpitPos=inCar.group.localToWorld(new THREE.Vector3(-.48,1.62,.34));
+   const cockpitPos=inCar.group.localToWorld(inCar.cockpit.clone());
    camera.position.copy(cockpitPos);
    const carForward=new THREE.Vector3(0,0,1).applyQuaternion(inCar.group.quaternion);
-   const viewTarget=cockpitPos.clone().addScaledVector(carForward,14);viewTarget.y+=pitch*5;camera.lookAt(viewTarget);
+   const viewTarget=cockpitPos.clone().addScaledVector(carForward,22);viewTarget.y+=pitch*3;camera.lookAt(viewTarget);
   }else{
    camera.position.set(target.x,target.y+2.08,target.z);
    const viewTarget=camera.position.clone().add(lookDir.multiplyScalar(12));viewTarget.y+=pitch*7;camera.lookAt(viewTarget);
