@@ -142,13 +142,12 @@ const verticalStreets=roadSegments.filter(v=>v.orientation==='v'),horizontalStre
 for(const v of verticalStreets)for(const h of horizontalStreets){if(rand()>.48)continue;const x=v.x+v.w/2+3,z=h.z+h.w/2+3;box(.22,6,.22,pole,x,3,z);box(2,.18,.18,pole,x+1,5.8,z);box(.8,.18,.7,lamp,x+2,5.7,z)}
 // Park plaza and waterfront promenade
 box(80,.25,42,mat(0xc5bda7),-130,.05,80);for(let i=0;i<12;i++)tree(-165+(i%6)*13,64+Math.floor(i/6)*30,.65);
-// Distinct landmarks: marina pier, sports court, fuel stop and a small plaza fountain.
-box(72,.45,15,mat(0x806b50),-70,.12,-174);for(let x=-102;x<=-38;x+=8){box(.25,.7,.25,mat(0x4b514e),x,.55,-180);box(.25,.7,.25,mat(0x4b514e),x,.55,-168)}
-for(let x=-95;x<=-45;x+=10)box(1.2,.18,1.2,mat(0x6b7a7b),x,.5,-174);
+// Waterfront kept clear: marina dock and pier removed.
+
 box(38,.18,24,mat(0x3b6975),150,.08,85);box(34,.03,20,mat(0xd7d1b8),150,.19,85);box(.18,.04,20,mat(0xf4e8bd),150,.22,85);box(34,.04,.18,mat(0xf4e8bd),150,.22,85);
 box(25,.22,18,mat(0xb7b0a0),150,.1,-35);box(12,.08,7,mat(0x273b3e),150,.25,-35);box(2,.6,2,mat(0xffd36b),150,.6,-35);
 const fountain= new THREE.Mesh(new THREE.CylinderGeometry(4,4,.5,24),mat(0x9a9c96));fountain.position.set(-130,.35,80);scene.add(fountain);const fountainWater=new THREE.Mesh(new THREE.CylinderGeometry(3.5,3.5,.12,24),mat(0x3c9db2,.2,.1));fountainWater.position.set(-130,.66,80);scene.add(fountainWater);
-for(let x=-240;x<=240;x+=12)box(1.3,.3,1.3,mat(0x9c9a8b),x,.18,-130);
+
 // Player
 const player=new THREE.Group();scene.add(player);
 const skin=mat(0xc58f6d),shirt=mat(0x243f59),pants=mat(0x252b35),shoe=mat(0x15191d);
@@ -157,7 +156,7 @@ const legL=box(.32,.85,.35,pants,-.25,.55,0,player),legR=box(.32,.85,.35,pants,.
 const armL=box(.25,.9,.28,skin,-.62,1.48,0,player),armR=box(.25,.9,.28,skin,.62,1.48,0,player);
 player.position.set(0,0,0);
 let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0;
-const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
+const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='KeyF')punch();if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
 addEventListener('keyup',e=>keys[e.code]=false);
 function requestMouseLock(){
  if($('start').style.display!=='none'||locked)return;
@@ -169,7 +168,7 @@ document.addEventListener('pointerlockerror',()=>{$('lockHint').style.display='b
 // A single click captures the pointer; after that mouse movement continuously turns the view.
 // No click-and-drag handler is used.
 document.addEventListener('click',()=>{if($('start').style.display==='none'&&!locked)requestMouseLock()});
-document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});
+document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});document.addEventListener('mousedown',e=>{if(e.button===0&&$('start').style.display==='none')punch()});
 $('play').onclick=()=>{$('start').style.display='none'};
 const cars=[];const carColors=[0xb83d36,0x315c83,0xd5d1c4,0x313b43,0xc18b35,0x47755d];
 function makeCar(x,z,color,angle=0,playerCar=false){
@@ -184,7 +183,7 @@ for(let i=0;i<18;i++){if(i%2===0){const roadX=drivableXs[Math.floor(rand()*driva
 const myCar=makeCar(7,5,0xd64b37,Math.PI,true);
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
-for(let i=0;i<32;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const body=box(.48,.9,.32,shirts[i%shirts.length],0,1,0,g);const h=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),skin);h.position.y=1.58;g.add(h);g.position.set(x,0,z);scene.add(g);people.push({g,x,z,dir:rand()*Math.PI*2,phase:rand()*8})}
+for(let i=0;i<32;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const body=box(.48,.9,.32,shirts[i%shirts.length],0,1,0,g);const h=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),skin);h.position.y=1.58;g.add(h);g.position.set(x,0,z);scene.add(g);people.push({g,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0})} const hitParticles=[];let hitCooldown=0;function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=1.1;const origin=target.g.position.clone().add(new THREE.Vector3(0,1.1,0));for(let i=0;i<18;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.12),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(origin);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.visible=true;inCar=null;notice('Exited vehicle');return}const c=nearestCar();if(c){inCar=c;player.visible=false;notice('Vehicle entered');}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
@@ -209,8 +208,10 @@ function update(dt){
   p.x=Math.max(-245,Math.min(245,p.x));p.z=Math.max(-340,Math.min(225,p.z));resolvePlayerBuildings();
   $('speed').textContent='SPEED  '+(move.lengthSq()?Math.round(sp*3.6):0)+' km/h';
  }
- // Pedestrians wander and move away from approaching cars; no injury or violent collision.
- for(const n of people){let flee=new THREE.Vector3();for(const c of cars){const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z,dist=Math.hypot(dx,dz);if(dist<10&&Math.abs(c.speed)>2)flee.add(new THREE.Vector3(dx,0,dz).normalize().multiplyScalar((10-dist)*1.5))}
+ // Arcade hit particles fade quickly and never leave marks.
+ hitCooldown=Math.max(0,hitCooldown-dt);for(let i=hitParticles.length-1;i>=0;i--){const p=hitParticles[i];p.life-=dt;p.vel.y-=9*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.rotation.x+=dt*8;p.mesh.rotation.z+=dt*6;p.mesh.scale.setScalar(Math.max(.01,p.life));if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();hitParticles.splice(i,1)}}
+ // Pedestrians wander and move away from approaching cars; hits cause a brief arcade knockback.
+ for(const n of people){if(n.hitTimer>0){n.hitTimer=Math.max(0,n.hitTimer-dt);n.g.position.addScaledVector(n.hitVel,dt);n.hitVel.multiplyScalar(Math.pow(.08,dt));}else{n.hitVel.set(0,0,0)}let flee=new THREE.Vector3();for(const c of cars){const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z,dist=Math.hypot(dx,dz);if(dist<10&&Math.abs(c.speed)>2)flee.add(new THREE.Vector3(dx,0,dz).normalize().multiplyScalar((10-dist)*1.5))}
   if(flee.lengthSq()>0){n.g.position.addScaledVector(flee.normalize(),dt*5);n.dir=Math.atan2(-flee.x,-flee.z)}else{n.phase+=dt;n.g.position.x+=Math.sin(n.phase+n.dir)*dt*.8;n.g.position.z+=Math.cos(n.phase+n.dir)*dt*.8}
   n.g.position.x=Math.max(-230,Math.min(230,n.g.position.x));n.g.position.z=Math.max(-125,Math.min(200,n.g.position.z));
  }
@@ -254,7 +255,7 @@ function drawMinimap(){
   ctx.fillRect(x,z,seg.w*scale,seg.d*scale);
  }
  // Unique landmarks are marked separately so the map is not just a repeated grid.
- ctx.fillStyle='#d2b56e';ctx.fillRect((-106+260)*scale,(-182+260)*scale,72*scale,16*scale);
+ 
  ctx.fillStyle='#c9d8dd';ctx.fillRect((131+260)*scale,(73+260)*scale,38*scale,24*scale);
  ctx.fillStyle='#d2d0bd';ctx.beginPath();ctx.arc((-130+260)*scale,(80+260)*scale,4*scale,0,Math.PI*2);ctx.fill();
  // building footprints
