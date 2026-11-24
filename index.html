@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 022</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 023</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 022 helps traffic clear blocked dead ends and recover from queues.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 023 replaces the randomly interrupted streets with a fully connected road grid.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -92,17 +92,17 @@ const roadMat=mats.asphalt;
 let seed=0x51AB71;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 function makeAxis(min,max){const a=[min];while(a[a.length-1]<max){const next=Math.min(max,a[a.length-1]+43+rand()*31);if(next-a[a.length-1]<22)break;a.push(next)}return a}
 const roadXs=makeAxis(-195,195),roadZs=makeAxis(-105,180);
-// Every load gets a different street rhythm. Some minor streets terminate early,
-// creating irregular blocks instead of the old identical square grid.
+// Fully connected street grid: every north-south street crosses every
+// east-west street. No randomly omitted roads or artificial dead ends.
 const roadSegments=[];
 function road(x,z,w,d,orientation){const y=orientation==='v'?.035:.02;box(w,.18,d,roadMat,x,y,z);roadSegments.push({x,z,w,d,orientation});}
 for(let i=0;i<roadXs.length;i++){
  const x=roadXs[i],main=i===0||i===roadXs.length-1||i===Math.floor(roadXs.length/2);
- if(main||rand()>.13)road(x,30,main?15:10,290,'v');
+ road(x,30,main?15:10,290,'v');
 }
 for(let i=0;i<roadZs.length;i++){
  const z=roadZs[i],main=i===0||i===roadZs.length-1||i===Math.floor(roadZs.length/2);
- if(main||rand()>.16)road(0,z,390,main?15:10,'h');
+ road(0,z,390,main?15:10,'h');
 }
 // Raised kerbs sit outside the asphalt. No coplanar sidewalk/road surfaces.
 for(const seg of roadSegments){
