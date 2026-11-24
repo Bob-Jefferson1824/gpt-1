@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 010</small></div>
- <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 011</small></div>
+ <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
- <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>ESC</b> Release mouse</div>
+ <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 009 adds AI traffic, driver takeovers, sinking vehicles, health and stamina. Explore the generated coastal city, enter cars, and watch the traffic move around you. Mouse look locks when you enter the city. This is still an evolving open-world prototype.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 011 adds three camera views, smarter lane-following traffic, larger vehicles, and a smoother punch animation. Explore the coastal city, take a car, and watch the traffic respond at intersections. Mouse look locks when you enter the city.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -158,9 +158,9 @@ const skin=mat(0xc58f6d),shirt=mat(0x243f59),pants=mat(0x252b35),shoe=mat(0x1519
 const playerParts=makeHumanoid(player,shirt);const {torso,head,legL,legR,armL,armR}=playerParts;
 let punchTime=0;
 player.position.set(0,0,0);
-let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0;
+let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0,cameraMode=0;
 let health=100,stamina=100,drownTimer=0,deadTimer=0;
-const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='KeyF')punch();if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
+const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='KeyF')punch();if(e.code==='KeyV'){cameraMode=(cameraMode+1)%3;notice(['Third-person camera','First-person camera','Cinematic camera'][cameraMode]);}if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
 addEventListener('keyup',e=>keys[e.code]=false);
 function requestMouseLock(){
  if($('start').style.display!=='none'||locked)return;
@@ -183,11 +183,11 @@ function makeHumanoid(g,shirtMaterial,pose='standing'){
 }
 function makeCar(x,z,color,angle=0,playerCar=false,lane=null){
  const g=new THREE.Group();scene.add(g);g.position.set(x,.2,z);g.rotation.y=angle;
- box(2.15,.72,4.2,mat(color,.4,.25),0,.72,0,g);box(1.55,.72,2.05,mats.glass,0,1.38,-.12,g);box(1.85,.12,1.2,mat(0x242c31),0,1.82,-.1,g);
+ box(2.15,.72,4.2,mat(color,.4,.25),0,.72,0,g);box(1.62,.88,2.1,mats.glass,0,1.48,-.12,g);box(1.95,.14,1.28,mat(0x242c31),0,2.0,-.1,g);
  for(const wx of [-1.12,1.12])for(const wz of [-1.35,1.35]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.25,16),mat(0x141719));wheel.rotation.z=Math.PI/2;wheel.position.set(wx,.43,wz);g.add(wheel)}
  for(const sx of [-.7,.7]){box(.28,.18,.08,mat(0xffe6ae),sx,.82,2.12,g);box(.3,.18,.08,mat(0xd63b30),sx,.82,-2.12,g)}
  const occupant=new THREE.Group();const driverParts=makeHumanoid(occupant,mat(0x283e52));occupant.position.set(0,-.15,-.05);occupant.scale.set(.82,.82,.82);g.add(occupant);
- const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,sinking:false,sinkTime:0,submerged:0,cruise:7+rand()*4};cars.push(c);return c;
+ g.scale.set(1.1,1.08,1.1);const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,sinking:false,sinkTime:0,submerged:0,cruise:9+rand()*3};cars.push(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
 for(let i=0;i<18;i++){
@@ -213,15 +213,51 @@ function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p
 const clock=new THREE.Clock();
 function update(dt){
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
- // AI cars stay centred in their assigned lanes and reverse at the road ends.
- for(const c of cars){if(c.sinking){c.sinkTime+=dt;c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);continue}if(c===inCar||!c.ai||!c.lane)continue;
-  const lane=c.lane,step=c.cruise*dt*lane.dir;
-  let next=lane.orientation==='v'?c.group.position.z-step:c.group.position.x+step;
-  if(next<lane.min||next>lane.max){lane.dir*=-1;next=lane.orientation==='v'?c.group.position.z+c.cruise*dt*lane.dir:c.group.position.x+c.cruise*dt*lane.dir}
-  const nx=lane.orientation==='v'?lane.fixed:c.group.position.x+(lane.orientation==='h'?step:0),nz=lane.orientation==='h'?lane.fixed:c.group.position.z+(lane.orientation==='v'?step:0);
-  const tx=lane.orientation==='v'?lane.fixed:nx,tz=lane.orientation==='h'?lane.fixed:nz;
-  if(!carBlocked(c,tx,tz)){c.group.position.x=tx;c.group.position.z=tz;c.speed=c.cruise}
-  c.angle=lane.orientation==='v'?(lane.dir>0?Math.PI:0):(lane.dir>0?-Math.PI/2:Math.PI/2);c.group.rotation.y=c.angle;
+ // Traffic follows its assigned lane, keeps a safe gap, yields to cross traffic,
+ // slows at junctions, and accelerates smoothly instead of snapping to full speed.
+ for(const c of cars){
+  if(c.sinking){c.sinkTime+=dt;c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);continue}
+  if(c===inCar||!c.ai||!c.lane)continue;
+  const lane=c.lane,vertical=lane.orientation==='v';
+  const coord=vertical?c.group.position.z:c.group.position.x;
+  let targetSpeed=c.cruise;
+  // Follow the next vehicle in the same lane rather than repeatedly bumping into it.
+  let nearestGap=Infinity;
+  for(const other of cars){
+   if(other===c||other.sinking)continue;
+   const sameLane=vertical
+    ?Math.abs(other.group.position.x-lane.fixed)<2.8
+    :Math.abs(other.group.position.z-lane.fixed)<2.8;
+   if(!sameLane)continue;
+   const ahead=((vertical?other.group.position.z:other.group.position.x)-coord)*lane.dir;
+   if(ahead>0&&ahead<nearestGap)nearestGap=ahead;
+  }
+  if(nearestGap<15)targetSpeed=Math.min(targetSpeed,Math.max(0,(nearestGap-4)*.85));
+  // Yield when a vehicle is already crossing the junction ahead.
+  for(const cross of roadSegments){
+   if((vertical&&cross.orientation!=='h')||(!vertical&&cross.orientation!=='v'))continue;
+   const crossAt=vertical?cross.z:cross.x;
+   const toCross=(crossAt-coord)*lane.dir;
+   if(toCross<0||toCross>7)continue;
+   const ix=vertical?lane.fixed:cross.x,iz=vertical?cross.z:lane.fixed;
+   const occupied=cars.some(other=>other!==c&&!other.sinking&&Math.hypot(other.group.position.x-ix,other.group.position.z-iz)<6.5);
+   if(occupied){targetSpeed=0;break}
+   targetSpeed=Math.min(targetSpeed,5.5);
+  }
+  const accel=targetSpeed<c.speed?15:5.5;
+  c.speed+=Math.max(-accel*dt,Math.min(accel*dt,targetSpeed-c.speed));
+  const step=c.speed*dt*lane.dir;
+  let next=coord+step;
+  if(next<lane.min||next>lane.max){
+   lane.dir*=-1;
+   c.speed=Math.min(c.speed,2.5);
+   next=coord+c.speed*dt*lane.dir;
+  }
+  const tx=vertical?lane.fixed:next,tz=vertical?next:lane.fixed;
+  if(!carBlocked(c,tx,tz)){c.group.position.x=tx;c.group.position.z=tz}
+  else c.speed=Math.max(0,c.speed-15*dt);
+  c.angle=vertical?(lane.dir>0?Math.PI:0):(lane.dir>0?-Math.PI/2:Math.PI/2);
+  c.group.rotation.y=c.angle;
   if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0}
  }
  if(inCar){
@@ -248,9 +284,19 @@ function update(dt){
  }
  // Ejected drivers recover to their feet, then sprint away from the stolen car.
  for(let i=ejectedDrivers.length-1;i>=0;i--){const d=ejectedDrivers[i];d.life-=dt;d.phase+=dt;const recovery=Math.max(0,Math.min(1,3.5-d.life));if(d.life>2.5){d.group.rotation.x=Math.PI/2*(1-recovery);d.group.position.y=0}else{d.group.rotation.x=0;d.group.position.addScaledVector(d.velocity,dt);d.velocity.multiplyScalar(Math.pow(.94,dt));d.parts.legL.rotation.x=Math.sin(d.phase*12)*.8;d.parts.legR.rotation.x=-Math.sin(d.phase*12)*.8;d.parts.armL.rotation.x=-Math.sin(d.phase*12)*.65;d.parts.armR.rotation.x=Math.sin(d.phase*12)*.65;}if(d.life<=0){scene.remove(d.group);ejectedDrivers.splice(i,1)}}
- // Punch animation: wind-up, fast extension, then recovery.
- punchTime=Math.max(0,punchTime-dt);const punchPhase=punchTime>0?1-punchTime/.42:1;const punchSwing=punchTime>0?Math.sin(Math.min(1,punchPhase*1.35)*Math.PI)*1.65:0;
- armR.rotation.x=-punchSwing;armR.rotation.z=-punchSwing*.22;armL.rotation.x=punchSwing*.12;torso.rotation.x=-punchSwing*.10;
+ // Punch animation: shoulder draws back, arm drives forward, then settles naturally.
+ punchTime=Math.max(0,punchTime-dt);
+ const punchP=punchTime>0?1-punchTime/.62:1;
+ let punchArm=0,punchTwist=0,punchLean=0;
+ if(punchTime>0){
+  if(punchP<.24){const t=punchP/.24;punchArm=.38*t;punchTwist=.12*t}
+  else if(punchP<.52){const t=(punchP-.24)/.28;punchArm=.38-(.38+1.28)*t;punchTwist=.12-.20*t;punchLean=-.13*t}
+  else{const t=(punchP-.52)/.48;punchArm=-1.28*(1-t);punchTwist=-.08*(1-t);punchLean=-.13*(1-t)}
+ }
+ armR.rotation.x+=punchArm;
+ armR.rotation.z=punchTwist;
+ armL.rotation.x*=punchTime>0?.72:0;
+ torso.rotation.x=punchLean;
  // Arcade hit particles fade quickly and never leave marks.
  hitCooldown=Math.max(0,hitCooldown-dt);for(let i=hitParticles.length-1;i>=0;i--){const p=hitParticles[i];p.life-=dt;p.vel.y-=9*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.rotation.x+=dt*8;p.mesh.rotation.z+=dt*6;p.mesh.scale.setScalar(Math.max(.01,p.life));if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();hitParticles.splice(i,1)}}
  // Pedestrians can be knocked out by punches or moving cars, then respawn elsewhere.
@@ -261,9 +307,22 @@ function update(dt){
  // Health and stamina HUD; death is a brief fade/respawn, with no graphic effects.
  if(health<=0){health=0;if(deadTimer<=0){deadTimer=2.2;notice('You are exhausted. Respawning...')}deadTimer-=dt;if(deadTimer<=0){health=100;stamina=100;drownTimer=0;underwater=0;player.position.set(0,0,0);player.visible=true;if(inCar){inCar=null}velocityY=0;}}
  $('healthFill').style.width=health+'%';$('healthText').textContent=Math.ceil(health);$('staminaFill').style.width=stamina+'%';$('staminaText').textContent=Math.ceil(stamina);
- const target=inCar?inCar.group.position:player.position;const camDist=inCar?10:7.5;const camHeight=inCar?4.1:3.2;
- const desired=new THREE.Vector3(target.x+Math.sin(yaw)*camDist,target.y+camHeight+pitch*5,target.z+Math.cos(yaw)*camDist);
- camera.position.copy(desired);camera.lookAt(target.x,target.y+(inCar?1.1:1.55),target.z);
+ const target=inCar?inCar.group.position:player.position;
+ const lookDir=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+ if(cameraMode===1){
+  // First-person view sits just above the character's eyes or behind the windscreen.
+  camera.position.set(target.x,target.y+(inCar?1.83:2.08),target.z);
+  const viewTarget=camera.position.clone().add(lookDir.multiplyScalar(12));
+  viewTarget.y+=pitch*7;
+  camera.lookAt(viewTarget);
+ }else{
+  const camDist=cameraMode===2?(inCar?15:11.5):(inCar?10:7.5);
+  const camHeight=cameraMode===2?(inCar?6.2:5.1):(inCar?4.1:3.2);
+  const desired=new THREE.Vector3(target.x+Math.sin(yaw)*camDist,target.y+camHeight+pitch*5,target.z+Math.cos(yaw)*camDist);
+  camera.position.lerp(desired,Math.min(1,dt*8));
+  camera.lookAt(target.x,target.y+(inCar?1.1:1.55),target.z);
+ }
+ $('cameraMode').textContent='CAMERA · '+['THIRD PERSON','FIRST PERSON','CINEMATIC'][cameraMode];
  if(!inCar)player.rotation.y=yaw;
  $('coords').textContent='X '+Math.round(target.x)+'  Z '+Math.round(target.z);
  $('location').textContent=cityName(target);
