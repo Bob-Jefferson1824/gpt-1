@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 019</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 020</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 019 fixes the bonnet camera and aligns all driving camera modes with the car's direction.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 020 adds tree collisions, pedestrian animations and terrain-safe roads.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -51,7 +51,7 @@ const box=(w,h,d,material,x,y,z,parent=scene)=>{const o=new THREE.Mesh(new THREE
 // A gently rolling landscape surrounds the original flat city centre.
 function smoothRange(a,b,v){const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)}
 function terrainHeight(x,z){
- const edge=Math.max(smoothRange(190,265,Math.abs(x)),smoothRange(175,255,z));
+ const edge=Math.max(smoothRange(215,275,Math.abs(x)),smoothRange(205,265,z));
  const peaks=[
   [-265,85,21,78], [265,105,25,88], [-95,260,20,92],
   [115,270,27,86], [285,-55,16,72], [-285,-45,14,70]
@@ -173,7 +173,8 @@ for(let ix=0;ix<roadXs.length-1;ix++){
 }
 // Trees with trunks and layered foliage
 const trunk=mat(0x644a31),leaf=[0x39734a,0x4f8551,0x6a9254].map(c=>mat(c));
-function tree(x,z,s=1){box(.65*s,3*s,.65*s,trunk,x,1.5*s,z);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(x,(3.5+i*.75)*s,z);q.castShadow=true;scene.add(q)}}
+const treeColliders=[];
+function tree(x,z,s=1){const groundY=terrainHeight(x,z);box(.65*s,3*s,.65*s,trunk,x,groundY+1.5*s,z);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(x,groundY+(3.5+i*.75)*s,z);q.castShadow=true;scene.add(q)}treeColliders.push({x,z,r:.72*s})}
 for(let x=-245;x<245;x+=18){tree(x,-126,.8+rand()*.4);tree(x,205,.8+rand()*.5)}
 for(let z=-110;z<190;z+=28){tree(-210,z,.8);tree(210,z,.8)}
 // Street lights
@@ -273,7 +274,7 @@ for(let i=0;i<36;i++){
 const myCar=makeCar(7,5,0xd64b37,Math.PI,true);myCar.ai=false;myCar.driver=false;myCar.occupant.visible=false;
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
-for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,0,z);scene.add(g);people.push({g,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
+for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const parts=makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,terrainHeight(x,z),z);scene.add(g);people.push({g,parts,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');$('vehicleName').style.opacity=0;return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=new THREE.Group();const parts=makeHumanoid(d,mat(0x283e52));scene.add(d);const side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),c.angle);d.position.copy(c.group.position).addScaledVector(side,2.1);d.position.y=0;d.rotation.y=c.angle;const away=new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle));ejectedDrivers.push({group:d,parts,life:3.5,velocity:away.multiplyScalar(3.5),phase:0});notice('Driver thrown out!')}inCar=c;player.visible=false;notice(c.name+' • ENTERED');$('vehicleName').innerHTML=c.name+'<small>VEHICLE ENTERED</small>';$('vehicleName').style.opacity=1;clearTimeout($('vehicleName').timer);$('vehicleName').timer=setTimeout(()=>$('vehicleName').style.opacity=0,2600);}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
@@ -358,7 +359,7 @@ function update(dt){
   $('speed').textContent='SPEED  '+(move.lengthSq()?Math.round(sp*3.6):0)+' km/h';
  }
  // Ejected drivers recover to their feet, then sprint away from the stolen car.
- for(let i=ejectedDrivers.length-1;i>=0;i--){const d=ejectedDrivers[i];d.life-=dt;d.phase+=dt;const recovery=Math.max(0,Math.min(1,3.5-d.life));if(d.life>2.5){d.group.rotation.x=Math.PI/2*(1-recovery);d.group.position.y=0}else{d.group.rotation.x=0;d.group.position.addScaledVector(d.velocity,dt);d.velocity.multiplyScalar(Math.pow(.94,dt));d.parts.legL.rotation.x=Math.sin(d.phase*12)*.8;d.parts.legR.rotation.x=-Math.sin(d.phase*12)*.8;d.parts.armL.rotation.x=-Math.sin(d.phase*12)*.65;d.parts.armR.rotation.x=Math.sin(d.phase*12)*.65;}if(d.life<=0){scene.remove(d.group);ejectedDrivers.splice(i,1)}}
+ for(let i=ejectedDrivers.length-1;i>=0;i--){const d=ejectedDrivers[i];d.life-=dt;d.phase+=dt;const recovery=Math.max(0,Math.min(1,3.5-d.life));if(d.life>2.5){d.group.rotation.x=Math.PI/2*(1-recovery);d.group.position.y=terrainHeight(d.group.position.x,d.group.position.z)}else{d.group.rotation.x=0;d.group.position.addScaledVector(d.velocity,dt);d.group.position.y=terrainHeight(d.group.position.x,d.group.position.z);d.velocity.multiplyScalar(Math.pow(.94,dt));d.parts.legL.rotation.x=Math.sin(d.phase*12)*.8;d.parts.legR.rotation.x=-Math.sin(d.phase*12)*.8;d.parts.armL.rotation.x=-Math.sin(d.phase*12)*.65;d.parts.armR.rotation.x=Math.sin(d.phase*12)*.65;}if(d.life<=0){scene.remove(d.group);ejectedDrivers.splice(i,1)}}
  // Punch animation: shoulder draws back, arm drives forward, then settles naturally.
  punchTime=Math.max(0,punchTime-dt);
  const punchP=punchTime>0?1-punchTime/.62:1;
@@ -375,9 +376,9 @@ function update(dt){
  // Arcade hit particles fade quickly and never leave marks.
  hitCooldown=Math.max(0,hitCooldown-dt);for(let i=hitParticles.length-1;i>=0;i--){const p=hitParticles[i];p.life-=dt;p.vel.y-=9*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.rotation.x+=dt*8;p.mesh.rotation.z+=dt*6;p.mesh.scale.setScalar(Math.max(.01,p.life));if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();hitParticles.splice(i,1)}}
  // Pedestrians can be knocked out by punches or moving cars, then respawn elsewhere.
- for(const n of people){if(n.down){n.respawn-=dt;n.knockTimer=Math.max(0,n.knockTimer-dt);if(n.knockTimer<=0)n.g.visible=false;if(n.respawn<=0){let sx=0,sz=0,found=false;for(let tries=0;tries<30;tries++){sx=-210+rand()*420;sz=-112+rand()*300;if(circleHitsBuilding(sx,sz,1.0))continue;if(Math.hypot(sx-player.position.x,sz-player.position.z)<18)continue;if(cars.some(c=>Math.hypot(sx-c.group.position.x,sz-c.group.position.z)<9))continue;found=true;break}if(!found){n.respawn=.5;continue}n.g.position.set(sx,0,sz);n.g.rotation.set(0,0,0);n.g.visible=true;n.health=2;n.down=false;n.hitVel.set(0,0,0);n.hitTimer=0;n.dir=rand()*Math.PI*2;n.phase=rand()*8}continue}if(n.hitTimer>0){n.hitTimer=Math.max(0,n.hitTimer-dt);n.g.position.addScaledVector(n.hitVel,dt);n.hitVel.multiplyScalar(Math.pow(.08,dt));}else{n.hitVel.set(0,0,0)}let flee=new THREE.Vector3();for(const c of cars){const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z,dist=Math.hypot(dx,dz);if(dist<10&&Math.abs(c.speed)>2)flee.add(new THREE.Vector3(dx,0,dz).normalize().multiplyScalar((10-dist)*1.5))}
+ for(const n of people){if(n.down){n.respawn-=dt;n.knockTimer=Math.max(0,n.knockTimer-dt);if(n.knockTimer<=0)n.g.visible=false;if(n.respawn<=0){let sx=0,sz=0,found=false;for(let tries=0;tries<30;tries++){sx=-210+rand()*420;sz=-112+rand()*300;if(circleHitsBuilding(sx,sz,1.0))continue;if(Math.hypot(sx-player.position.x,sz-player.position.z)<18)continue;if(cars.some(c=>Math.hypot(sx-c.group.position.x,sz-c.group.position.z)<9))continue;found=true;break}if(!found){n.respawn=.5;continue}n.g.position.set(sx,terrainHeight(sx,sz),sz);n.g.rotation.set(0,0,0);n.g.visible=true;n.health=2;n.down=false;n.hitVel.set(0,0,0);n.hitTimer=0;n.dir=rand()*Math.PI*2;n.phase=rand()*8}continue}if(n.hitTimer>0){n.hitTimer=Math.max(0,n.hitTimer-dt);n.g.position.addScaledVector(n.hitVel,dt);n.hitVel.multiplyScalar(Math.pow(.08,dt));}else{n.hitVel.set(0,0,0)}let flee=new THREE.Vector3();for(const c of cars){const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z,dist=Math.hypot(dx,dz);if(dist<10&&Math.abs(c.speed)>2)flee.add(new THREE.Vector3(dx,0,dz).normalize().multiplyScalar((10-dist)*1.5))}
   if(flee.lengthSq()>0){n.g.position.addScaledVector(flee.normalize(),dt*5);n.dir=Math.atan2(-flee.x,-flee.z)}else{n.phase+=dt;n.g.position.x+=Math.sin(n.phase+n.dir)*dt*.8;n.g.position.z+=Math.cos(n.phase+n.dir)*dt*.8}
-  n.g.position.x=Math.max(-230,Math.min(230,n.g.position.x));n.g.position.z=Math.max(-125,Math.min(200,n.g.position.z));resolvePedestrianBuildings(n);
+  n.g.position.x=Math.max(-230,Math.min(230,n.g.position.x));n.g.position.z=Math.max(-125,Math.min(200,n.g.position.z));resolvePedestrianBuildings(n);n.phase+=dt*(flee.lengthSq()>0?2.4:1.5);n.parts.legL.rotation.x=Math.sin(n.phase*6)*.48;n.parts.legR.rotation.x=-Math.sin(n.phase*6)*.48;n.parts.armL.rotation.x=-Math.sin(n.phase*6)*.32;n.parts.armR.rotation.x=Math.sin(n.phase*6)*.32;n.g.rotation.y=n.dir;
  }
  // Health and stamina HUD; death is a brief fade/respawn, with no graphic effects.
  if(health<=0){health=0;if(deadTimer<=0){deadTimer=2.2;notice('You are exhausted. Respawning...')}deadTimer-=dt;if(deadTimer<=0){health=100;stamina=100;drownTimer=0;underwater=0;player.position.copy(PLAYER_SPAWN);player.visible=true;if(inCar){inCar=null}velocityY=0;}}
@@ -421,7 +422,8 @@ function update(dt){
 }
 // Solid collision helpers: circle-vs-building for the player and cars.
 function circleHitsBuilding(x,z,r){
- return buildingColliders.some(b=>{const qx=Math.max(b.minX,Math.min(x,b.maxX)),qz=Math.max(b.minZ,Math.min(z,b.maxZ));return (x-qx)**2+(z-qz)**2<r*r});
+ if(buildingColliders.some(b=>{const qx=Math.max(b.minX,Math.min(x,b.maxX)),qz=Math.max(b.minZ,Math.min(z,b.maxZ));return (x-qx)**2+(z-qz)**2<r*r}))return true;
+ return treeColliders.some(t=>(x-t.x)**2+(z-t.z)**2<(r+t.r)**2);
 }
 function resolvePlayerBuildings(){
  const p=player.position,r=.62;
@@ -430,9 +432,10 @@ function resolvePlayerBuildings(){
   let dx=p.x-qx,dz=p.z-qz,d=Math.hypot(dx,dz);
   if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}
  }
+ for(const t of treeColliders){let dx=p.x-t.x,dz=p.z-t.z,d=Math.hypot(dx,dz),min=r+t.r;if(d<min){if(d<.001){dx=1;d=1}p.x+=dx/d*(min-d);p.z+=dz/d*(min-d)}}
  for(const car of cars){if(car===inCar)continue;const dx=p.x-car.group.position.x,dz=p.z-car.group.position.z,d=Math.hypot(dx,dz),min=1.7;if(d<min){const safe=Math.max(d,.001);p.x+=dx/safe*(min-d);p.z+=dz/safe*(min-d)}}
 }
-function resolvePedestrianBuildings(n){const p=n.g.position,r=.78;for(let pass=0;pass<2;pass++)for(const b of buildingColliders){const qx=Math.max(b.minX,Math.min(p.x,b.maxX)),qz=Math.max(b.minZ,Math.min(p.z,b.maxZ));let dx=p.x-qx,dz=p.z-qz,d=Math.hypot(dx,dz);if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}}}
+function resolvePedestrianBuildings(n){const p=n.g.position,r=.78;for(let pass=0;pass<2;pass++){for(const b of buildingColliders){const qx=Math.max(b.minX,Math.min(p.x,b.maxX)),qz=Math.max(b.minZ,Math.min(p.z,b.maxZ));let dx=p.x-qx,dz=p.z-qz,d=Math.hypot(dx,dz);if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}}for(const t of treeColliders){let dx=p.x-t.x,dz=p.z-t.z,d=Math.hypot(dx,dz),min=r+t.r;if(d<min){if(d<.001){dx=1;d=1}p.x+=dx/d*(min-d);p.z+=dz/d*(min-d)}}}p.y=terrainHeight(p.x,p.z)}
 function carBlocked(car,x,z){
  if(circleHitsBuilding(x,z,1.65))return true;
  for(const other of cars){if(other===car)continue;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<3.25)return true}
