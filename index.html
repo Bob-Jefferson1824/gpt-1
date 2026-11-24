@@ -583,7 +583,7 @@ function drawMinimap(){
  ctx.fillStyle='#d5c18c';
  for(let px=0;px<W;px+=2){
   const wx=px/scale-450,shore=shorelineAt(wx);
-  ctx.fillRect(px,mapZ(shore+8),2,Math.max(1,(13*scale)));
+  ctx.fillRect(px,mapZ(shore-5),2,Math.max(1,(14*scale)));
  }
  // Generated road network, matching the expanded 900m world rather than drawing a fixed grid.
  ctx.fillStyle='#303a40';
