@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GPT 1 — Open World</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#91b9c2;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+canvas{display:block}#hud{position:fixed;inset:0;pointer-events:none;color:#fff;text-shadow:0 2px 8px #000b}
+#brand{position:absolute;top:22px;left:24px;font-weight:900;letter-spacing:.16em;font-size:18px}#brand small{display:block;font-size:9px;letter-spacing:.24em;color:#c9e5e7;margin-top:4px}
+#help{position:absolute;left:24px;bottom:24px;background:#07131dcc;border:1px solid #ffffff26;border-radius:12px;padding:12px 15px;font-size:12px;line-height:1.8;backdrop-filter:blur(8px)}
+#help b{color:#a8e5d0}#status{position:absolute;right:24px;top:22px;text-align:right;font-size:11px;letter-spacing:.12em;color:#e2f4f2}#status strong{display:block;font-size:14px;color:white;margin-top:5px}
+#crosshair{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff;opacity:.65;box-shadow:0 0 8px #000}
+#toast{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);background:#07131dcc;padding:9px 14px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .25s}
+#start{position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(135deg,#07131deF,#0d2535d9);color:white;z-index:5}
+.panel{width:min(440px,calc(100vw - 36px));padding:30px;border:1px solid #ffffff2b;border-radius:18px;background:#0a1723eF;box-shadow:0 24px 90px #0008}
+.panel h1{font-size:38px;letter-spacing:.12em;margin:0}.panel p{color:#b7cbd2;line-height:1.55;font-size:14px}.panel button{border:0;border-radius:9px;background:#b9e6d1;color:#092018;font-weight:900;letter-spacing:.1em;padding:14px 20px;width:100%;cursor:pointer;margin-top:12px}.panel button:hover{background:#d6f3e4}
+#loading{font-size:12px;color:#a9c7ce;margin-top:12px}
+@media(max-width:600px){#help{font-size:10px;left:12px;bottom:12px;padding:9px 11px}#brand{left:14px;top:14px}#status{right:14px;top:14px}}
+</style>
+</head>
+<body>
+<div id="start"><div class="panel"><h1>GPT 1</h1><div style="font-size:10px;letter-spacing:.3em;color:#a8e5d0;margin-top:7px">OPEN WORLD • BUILD 001</div><p>A city with no missions and nowhere you have to be. Explore the streets, suburbs, waterfront and countryside.</p><p><b>WASD</b> move · <b>Mouse</b> look · <b>Shift</b> sprint · <b>Space</b> jump · <b>Esc</b> release mouse</p><button id="play">ENTER THE CITY</button><div id="loading">Loading the world…</div></div></div>
+<div id="hud"><div id="brand">GPT 1<small>FREE ROAM • BUILD 001</small></div><div id="status">LOCATION<strong id="location">DOWNTOWN</strong></div><div id="crosshair"></div><div id="help"><b>CONTROLS</b><br>W A S D &nbsp; Move<br>Mouse &nbsp; Look around<br>SHIFT &nbsp; Sprint<br>SPACE &nbsp; Jump<br>ESC &nbsp; Unlock mouse</div><div id="toast"></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x91b9c2);
+scene.fog=new THREE.Fog(0x91b9c2,180,760);
+const camera=new THREE.PerspectiveCamera(67,innerWidth/innerHeight,.1,1400);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xd9f0ff,0x65704d,2.0));
+const sun=new THREE.DirectionalLight(0xffe2b8,2.3);sun.position.set(-180,260,120);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-260;sun.shadow.camera.right=260;sun.shadow.camera.top=260;sun.shadow.camera.bottom=-260;scene.add(sun);
+
+const mats={grass:new THREE.MeshStandardMaterial({color:0x718b61}),sand:new THREE.MeshStandardMaterial({color:0xc9b78b}),road:new THREE.MeshStandardMaterial({color:0x343b40}),side:new THREE.MeshStandardMaterial({color:0xb7b7a9}),line:new THREE.MeshStandardMaterial({color:0xe4d9a8}),water:new THREE.MeshStandardMaterial({color:0x397e91,roughness:.28,metalness:.12}),white:new THREE.MeshStandardMaterial({color:0xe8e2d5}),glass:new THREE.MeshStandardMaterial({color:0x456c78,metalness:.35,roughness:.22}),dark:new THREE.MeshStandardMaterial({color:0x263039})};
+function box(w,h,d,mat,x,y,z,shadow=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=shadow;m.receiveShadow=true;scene.add(m);return m}
+function plane(w,d,mat,x,z,y=0){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat);m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.receiveShadow=true;scene.add(m)}
+plane(1400,1400,mats.grass,0,0);
+// coastline and water on the eastern edge
+plane(360,1400,mats.sand,520,0,.025);plane(420,1400,mats.water,900,0,.03);
+for(let i=0;i<14;i++){const wave=box(1,.12,140,new THREE.MeshStandardMaterial({color:0x75b3ba,transparent:true,opacity:.23}),700+i*25,.08,0,false);wave.rotation.y=.02}
+
+// Roads form a readable downtown grid. Main streets run north-south and east-west.
+const roadXs=[-240,-120,0,120,240,360],roadZs=[-300,-180,-60,60,180,300];
+for(const x of roadXs){plane(25,760,mats.side,x,0,.035);plane(18,760,mats.road,x,0,.055);for(let z=-360;z<380;z+=24)box(.35,.035,10,mats.line,x,.06,z,false)}
+for(const z of roadZs){plane(760,25,mats.side,0,z,.035);plane(760,18,mats.road,0,z,.055);for(let x=-360;x<380;x+=24)box(10,.035,.35,mats.line,x,.06,z,false)}
+// Beach road and coastal promenade
+plane(24,760,mats.side,440,0,.035);plane(17,760,mats.road,440,0,.055);
+plane(14,760,new THREE.MeshStandardMaterial({color:0xd0c7a8}),480,0,.04);
+
+// Buildings on blocks, with variation in height and colour.
+const palettes=[0xb9b8ae,0x9daeb0,0xd2c3a8,0x8d9b9e,0xc4b7a5,0x777f83,0xd9d4c8];
+function building(x,z,w,d,h,color,style=0){
+ const base=new THREE.MeshStandardMaterial({color,roughness:.82});
+ box(w,h,d,base,x,h/2,z);
+ // glass strips/windows on the street-facing side
+ const winMat=new THREE.MeshStandardMaterial({color:style===0?0x45616a:0x6b8587,metalness:.2,roughness:.3,emissive:0x15252a});
+ const rows=Math.min(12,Math.floor(h/4));
+ for(let r=0;r<rows;r++){
+  const yy=2.2+r*3.2;
+  for(let col=0;col<Math.max(2,Math.floor(w/5));col++){
+   const xx=x-w/2+2.3+col*4.4;if(xx>x+w/2-1)continue;
+   box(1.5,1.65,.09,winMat,xx,yy,z-d/2-.06,false);
+  }
+ }
+ if(h>32){const roof=box(w*.35,2,d*.35,new THREE.MeshStandardMaterial({color:0x5b6465}),x,h+1,z,false)}
+}
+// city blocks
+for(let gx=-300;gx<=360;gx+=120){for(let gz=-240;gz<=300;gz+=120){
+ if(gx>300)continue;
+ const count=(gx<120&&Math.abs(gz)<180)?3:2;
+ for(let n=0;n<count;n++){
+  const x=gx+(n-(count-1)/2)*23+(Math.random()-.5)*8;
+  const z=gz+(Math.random()-.5)*44;
+  const w=17+Math.random()*10,d=18+Math.random()*13;
+  const downtown=gx<150&&Math.abs(gz)<200;
+  const h=downtown?28+Math.random()*90:9+Math.random()*23;
+  building(x,z,w,d,h,palettes[Math.floor(Math.random()*palettes.length)],Math.random());
+ }
+}}
+// Landmarks: hotel, office tower, parking garage and warehouse
+building(-65,-95,42,38,118,0x9daeb0);
+building(160,145,48,42,82,0xbbb5a8);
+building(310,-210,58,70,18,0xaaa99c);
+building(-320,210,76,62,16,0x8f9995);
+// Suburban homes south and west of the city
+const houseMats=[0xd8cbb6,0xb8c1bd,0xe1ded1,0xb7a28f];
+function house(x,z){
+ const c=houseMats[Math.floor(Math.random()*houseMats.length)];
+ box(17,7,15,new THREE.MeshStandardMaterial({color:c}),x,3.5,z);
+ const roof=new THREE.Mesh(new THREE.ConeGeometry(13,7,4),new THREE.MeshStandardMaterial({color:0x795b4d}));roof.position.set(x,9.5,z);roof.rotation.y=Math.PI/4;roof.castShadow=true;scene.add(roof);
+ box(2.5,4,.18,mats.dark,x,2,z-7.6,false);
+}
+for(let x=-340;x<80;x+=34)for(let z=390;z<560;z+=34)house(x,z);
+for(let x=-380;x<-180;x+=34)for(let z=-390;z<-300;z+=34)house(x,z);
+// Trees and palms
+function tree(x,z,palm=false){
+ const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.55,.8,7,7),new THREE.MeshStandardMaterial({color:0x72563d}));trunk.position.set(x,3.5,z);trunk.castShadow=true;scene.add(trunk);
+ if(palm){for(let i=0;i<7;i++){const leaf=new THREE.Mesh(new THREE.ConeGeometry(1.1,8,5),new THREE.MeshStandardMaterial({color:0x347b55}));leaf.position.set(x+Math.cos(i*Math.PI/3.5)*3,7.4,z+Math.sin(i*Math.PI/3.5)*3);leaf.rotation.z=Math.PI/2.8;leaf.rotation.y=i;scene.add(leaf)}}
+ else{const crown=new THREE.Mesh(new THREE.SphereGeometry(4.5,8,7),new THREE.MeshStandardMaterial({color:0x47734b}));crown.position.set(x,8,z);crown.castShadow=true;scene.add(crown)}
+}
+for(let i=0;i<120;i++){const x=-430+Math.random()*850,z=-650+Math.random()*1300;if(Math.abs(x%120)<17||Math.abs(z%120)<17||x>410)continue;tree(x,z,x>380)}
+for(let z=-620;z<640;z+=24)tree(493,z,true);
+// Street lamps
+for(const x of roadXs)for(let z=-320;z<340;z+=90){box(.35,8,.35,mats.dark,x+13,4,z,false);box(3,.22,.3,new THREE.MeshStandardMaterial({color:0xd9d2a9,emissive:0x332b17}),x+14.3,7.8,z,false)}
+// Park
+plane(92,92,new THREE.MeshStandardMaterial({color:0x557d53}),-180,0,.035);
+for(let i=0;i<20;i++)tree(-220+Math.random()*80,-40+Math.random()*80);
+// Cars parked along roads
+const carColors=[0xb9c4c4,0x273d50,0x9d3d32,0xd1b16e,0x303638,0xe2e0d5];
+const cars=[];
+function car(x,z,color,angle=0,moving=false){
+ const g=new THREE.Group();g.position.set(x,.15,z);g.rotation.y=angle;
+ const body=new THREE.Mesh(new THREE.BoxGeometry(4.5,1.35,8),new THREE.MeshStandardMaterial({color,metalness:.38,roughness:.35}));body.position.y=1;body.castShadow=true;g.add(body);
+ const cabin=new THREE.Mesh(new THREE.BoxGeometry(3.5,1.2,3.8),new THREE.MeshStandardMaterial({color:0x354c57,metalness:.25,roughness:.2}));cabin.position.set(0,2,0);g.add(cabin);
+ const wheelMat=new THREE.MeshStandardMaterial({color:0x17191a});
+ for(const xx of [-2.2,2.2])for(const zz of [-2.6,2.6]){const wh=new THREE.Mesh(new THREE.CylinderGeometry(.68,.68,.38,12),wheelMat);wh.rotation.z=Math.PI/2;wh.position.set(xx,.65,zz);g.add(wh)}
+ scene.add(g);if(moving)cars.push({g,x,z,phase:Math.random()*Math.PI*2});
+}
+for(let i=0;i<35;i++){const z=-300+Math.random()*600;car(roadXs[Math.floor(Math.random()*roadXs.length)]+(Math.random()>.5?7:-7),z,carColors[i%carColors.length],0,false)}
+for(let i=0;i<8;i++)car(-360+Math.random()*700,roadZs[Math.floor(Math.random()*roadZs.length)]+7,carColors[i%carColors.length],Math.PI/2,false);
+// Player avatar
+const player=new THREE.Group();scene.add(player);
+const skin=new THREE.MeshStandardMaterial({color:0xb98768}),shirt=new THREE.MeshStandardMaterial({color:0x243e4b}),pants=new THREE.MeshStandardMaterial({color:0x30343a});
+const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.72,1.25,4,8),shirt);torso.position.y=2.1;torso.castShadow=true;player.add(torso);
+const head=new THREE.Mesh(new THREE.SphereGeometry(.48,12,10),skin);head.position.y=3.35;head.castShadow=true;player.add(head);
+for(const x of [-.42,.42]){const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.25,.9,3,6),pants);leg.position.set(x,.85,0);leg.castShadow=true;player.add(leg)}
+for(const x of [-.88,.88]){const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.2,.9,3,6),shirt);arm.position.set(x,2.1,0);arm.rotation.z=x*.25;player.add(arm)}
+player.position.set(0,0,30);
+
+const keys={};let yaw=0,pitch=.22,locked=false,vertical=0,onGround=true;
+const toast=document.getElementById('toast');let toastTimer;
+function showToast(s){toast.textContent=s;toast.style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.style.opacity=0,1800)}
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault()});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+renderer.domElement.addEventListener('click',()=>{if(document.pointerLockElement!==renderer.domElement)renderer.domElement.requestPointerLock()});
+document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockElement===renderer.domElement});
+document.addEventListener('mousemove',e=>{if(!locked)return;yaw-=e.movementX*.0022;pitch=Math.max(-.18,Math.min(.72,pitch-e.movementY*.0018))});
+document.getElementById('play').addEventListener('click',()=>{document.getElementById('start').style.display='none';renderer.domElement.requestPointerLock();showToast('Welcome to the city. No missions. Just freedom.')});
+function zone(){const p=player.position;if(p.x>470)return 'COASTLINE';if(p.z>340)return 'THE SUBURBS';if(p.x<-280&&p.z>150)return 'COUNTRYSIDE';if(Math.abs(p.x)<300&&Math.abs(p.z)<300)return 'DOWNTOWN';return 'OUTSKIRTS'}
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);
+ const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const move=new THREE.Vector3();
+ if(keys.KeyW||keys.ArrowUp)move.add(forward);if(keys.KeyS||keys.ArrowDown)move.sub(forward);if(keys.KeyD||keys.ArrowRight)move.add(right);if(keys.KeyA||keys.ArrowLeft)move.sub(right);
+ if(move.lengthSq()>0){move.normalize();const speed=(keys.ShiftLeft||keys.ShiftRight)?20:10;player.position.addScaledVector(move,speed*dt);player.rotation.y=Math.atan2(-move.x,-move.z)}
+ if(keys.Space&&onGround){vertical=8;onGround=false}
+ vertical-=22*dt;player.position.y+=vertical*dt;if(player.position.y<0){player.position.y=0;vertical=0;onGround=true}
+ player.position.x=THREE.MathUtils.clamp(player.position.x,-620,620);player.position.z=THREE.MathUtils.clamp(player.position.z,-650,650);
+ const target=new THREE.Vector3(player.position.x,player.position.y+2.2,player.position.z);
+ const distance=8.5;const cp=Math.cos(pitch);
+ const desired=new THREE.Vector3(target.x+Math.sin(yaw)*distance*cp,target.y+3.2+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*distance*cp);
+ camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(target);
+ document.getElementById('location').textContent=zone();
+ renderer.render(scene,camera);
+}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body>
+</html>
