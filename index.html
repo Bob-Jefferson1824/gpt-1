@@ -13,7 +13,7 @@
 .vital{height:7px;background:#172832;border-radius:8px;overflow:hidden;margin:4px 0 8px}.vital span{display:block;height:100%;width:100%;transition:width .12s}
 #healthFill{background:#e45b5b}#staminaFill{background:#e8c45b}
 #help{position:absolute;left:24px;bottom:24px;background:#07131dcc;border:1px solid #ffffff26;border-radius:10px;padding:12px 15px;font-size:12px;line-height:1.8}
-#help b{color:#9fe1ff}#location{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:2px;font-weight:800;color:#dff8ff}
+#help b{color:#9fe1ff}#location{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:2px;font-weight:800;color:#dff8ff}#vehicleName{position:absolute;left:50%;bottom:82px;transform:translateX(-50%);font-size:19px;font-weight:900;letter-spacing:2px;padding:9px 16px;background:#07131dcc;border:1px solid #ffffff33;border-radius:8px;opacity:0;transition:opacity .2s;text-align:center;white-space:nowrap}#vehicleName small{display:block;font-size:9px;letter-spacing:2px;color:#9fcbd8;margin-top:4px}
 #prompt{position:absolute;bottom:100px;left:50%;transform:translateX(-50%);padding:10px 16px;background:#07131ddd;border:1px solid #9fe1ff66;border-radius:8px;font-size:13px;display:none}
 #crosshair{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff9;box-shadow:0 0 4px #000}
 #start{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(#07131d88,#07131ddd);pointer-events:auto}
@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 012</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 013</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
- <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
+ <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 012 brings a consistent city layout and spawn point, more traffic, several vehicle types, and a cleaner first-person view. Explore the same Seabright every time you play.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 013 brings redesigned vehicles, hidden AI drivers, named cars and a proper driver-seat camera.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -186,19 +186,45 @@ function makeHumanoid(g,shirtMaterial,pose='standing'){
 function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
  const g=new THREE.Group();scene.add(g);g.position.set(x,.2,z);g.rotation.y=angle;
  const specs={compact:{w:2.0,h:.66,l:3.65,cabW:1.48,cabH:.72,cabL:1.75,wheelX:.99,wheelZ:1.18},sedan:{w:2.15,h:.72,l:4.2,cabW:1.62,cabH:.88,cabL:2.1,wheelX:1.12,wheelZ:1.35},suv:{w:2.3,h:.86,l:4.5,cabW:1.82,cabH:1.08,cabL:2.45,wheelX:1.2,wheelZ:1.42},van:{w:2.35,h:.95,l:4.8,cabW:1.98,cabH:1.35,cabL:3.0,wheelX:1.23,wheelZ:1.5},pickup:{w:2.3,h:.78,l:4.7,cabW:1.72,cabH:.95,cabL:1.95,wheelX:1.2,wheelZ:1.48}};
- const v=specs[type]||specs.sedan,body=mat(color,.4,.25),trim=mat(0x242c31);
+ const v=specs[type]||specs.sedan,body=mat(color,.34,.28),trim=mat(0x202a30,.55,.35),rubber=mat(0x111518,.92),chrome=mat(0x9da9ad,.28,.72);
+ // Class-specific proportions and bodywork make silhouettes recognisably different.
  box(v.w,v.h,v.l,body,0,v.h/2,0,g);
- if(type==='pickup')box(v.w*.92,.42,v.l*.42,body,0,v.h+.21,-v.l*.27,g);
- box(v.cabW,v.cabH,v.cabL,mats.glass,0,v.h+v.cabH/2-.06,-.12,g);
- box(v.cabW+.16,.14,v.cabL+.12,trim,0,v.h+v.cabH-.04,-.12,g);
- for(const wx of [-v.wheelX,v.wheelX])for(const wz of [-v.wheelZ,v.wheelZ]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.25,16),mat(0x141719));wheel.rotation.z=Math.PI/2;wheel.position.set(wx,.43,wz);g.add(wheel)}
- for(const sx of [-v.w*.32,v.w*.32]){box(.28,.18,.08,mat(0xffe6ae),sx,v.h*.72,v.l/2+.025,g);box(.3,.18,.08,mat(0xd63b30),sx,v.h*.72,-v.l/2-.025,g)}
- const occupant=new THREE.Group(),driverParts=makeHumanoid(occupant,mat(0x283e52));
- occupant.position.set(0,-.15,-.05);occupant.scale.set(.82,.82,.82);
- // Fold the driver's legs forward so their feet remain inside the cabin.
- driverParts.legL.rotation.x=Math.PI/2;driverParts.legR.rotation.x=Math.PI/2;g.add(occupant);
+ box(v.w*.91,v.h*.34,v.l*.29,body,0,v.h*.88,v.l*.34,g);
+ box(v.w*.94,v.h*.30,v.l*.24,body,0,v.h*.84,-v.l*.36,g);
+ const cabZ=type==='van'?.02:type==='pickup'?.10:-.13;
+ box(v.cabW,v.cabH,v.cabL,body,0,v.h+v.cabH/2-.04,cabZ,g);
+ box(v.cabW*.84,v.cabH*.48,.055,mats.glass,0,v.h+v.cabH*.66,cabZ+v.cabL*.49,g);
+ box(v.cabW*.84,v.cabH*.55,.055,mats.glass,0,v.h+v.cabH*.63,cabZ-v.cabL*.49,g);
+ for(const side of [-1,1]){
+  box(.045,v.cabH*.48,v.cabL*.68,mats.glass,side*(v.cabW/2+.012),v.h+v.cabH*.63,cabZ,g);
+  box(.09,.12,v.cabL*.82,trim,side*(v.cabW/2+.025),v.h+v.cabH*.25,cabZ,g);
+  box(.18,.11,.62,chrome,side*(v.w/2+.035),v.h*.7,.28,g);
+ }
+ box(v.cabW+.12,.13,v.cabL+.12,trim,0,v.h+v.cabH-.04,cabZ,g);
+ box(v.w*.55,.24,.07,trim,0,v.h*.43,v.l/2+.035,g);
+ box(v.w*.26,.19,.075,chrome,0,v.h*.43,v.l/2+.08,g);
+ for(const sx of [-1,1]){
+  box(.34,.19,.09,mat(0xffe6b6,.25),sx*v.w*.34,v.h*.72,v.l/2+.045,g);
+  box(.36,.2,.09,mat(0xb82e2a,.3),sx*v.w*.34,v.h*.68,-v.l/2-.045,g);
+ }
+ for(const wx of [-v.wheelX,v.wheelX])for(const wz of [-v.wheelZ,v.wheelZ]){
+  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.31,20),rubber);wheel.rotation.z=Math.PI/2;wheel.position.set(wx,.44,wz);g.add(wheel);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.325,16),chrome);hub.rotation.z=Math.PI/2;hub.position.set(wx,.44,wz);g.add(hub);
+ }
+ if(type==='compact'){box(v.w*.72,.12,.18,trim,0,v.h+.08,-v.l*.46,g)}
+ if(type==='suv'){box(v.cabW*.72,.1,.16,trim,0,v.h+v.cabH+.02,-.05,g);box(.12,.55,.12,trim,-v.cabW*.42,v.h+v.cabH*.3,0,g);box(.12,.55,.12,trim,v.cabW*.42,v.h+v.cabH*.3,0,g)}
+ if(type==='van'){box(v.w*.94,.18,v.l*.12,trim,0,v.h+.12,-v.l*.38,g);box(.08,.7,.08,trim,-v.w*.48,v.h+.25,-.2,g);box(.08,.7,.08,trim,v.w*.48,v.h+.25,-.2,g)}
+ if(type==='pickup'){box(v.w*.94,.48,v.l*.38,body,0,v.h+.20,-v.l*.30,g);box(v.w*.78,.06,v.l*.30,trim,0,v.h+.45,-v.l*.30,g)}
+ // Driver-seat dashboard and steering wheel.
+ const dash=mat(0x20282b,.72),seat=mat(0x30383b,.85);
+ box(v.cabW*.9,.16,.55,dash,0,v.h+.53,cabZ+v.cabL*.25,g);
+ const steering=new THREE.Mesh(new THREE.TorusGeometry(.25,.035,8,20),trim);steering.position.set(-.48,v.h+.72,cabZ+v.cabL*.31);steering.rotation.y=.08;g.add(steering);
+ box(.48,.55,.42,seat,-.48,v.h+.22,cabZ-.05,g);
+ // AI driver models are hidden to prevent heads and limbs clipping through the roof.
+ const occupant=new THREE.Group(),driverParts=makeHumanoid(occupant,mat(0x283e52));occupant.visible=false;g.add(occupant);
  g.scale.set(1.1,1.08,1.1);
- const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,sinking:false,sinkTime:0,submerged:0,cruise:9+rand()*3};
+ const carNames={compact:'PIPER COMPACT',sedan:'SEABRIGHT SEDAN',suv:'IRONCLAD SUV',van:'CITYLINE VAN',pickup:'RANGER PICKUP'};
+ const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,name:carNames[type]||'SEDAN',sinking:false,sinkTime:0,submerged:0,cruise:9+rand()*3};
  cars.push(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
@@ -218,7 +244,7 @@ const myCar=makeCar(7,5,0xd64b37,Math.PI,true);myCar.ai=false;myCar.driver=false
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
 for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,0,z);scene.add(g);people.push({g,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
-function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=new THREE.Group();const parts=makeHumanoid(d,mat(0x283e52));scene.add(d);const side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),c.angle);d.position.copy(c.group.position).addScaledVector(side,2.1);d.position.y=0;d.rotation.y=c.angle;const away=new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle));ejectedDrivers.push({group:d,parts,life:3.5,velocity:away.multiplyScalar(3.5),phase:0});notice('Driver thrown out!')}inCar=c;player.visible=false;notice('Vehicle taken');}}
+function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');$('vehicleName').style.opacity=0;return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=new THREE.Group();const parts=makeHumanoid(d,mat(0x283e52));scene.add(d);const side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),c.angle);d.position.copy(c.group.position).addScaledVector(side,2.1);d.position.y=0;d.rotation.y=c.angle;const away=new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle));ejectedDrivers.push({group:d,parts,life:3.5,velocity:away.multiplyScalar(3.5),phase:0});notice('Driver thrown out!')}inCar=c;player.visible=false;notice(c.name+' • ENTERED');$('vehicleName').innerHTML=c.name+'<small>VEHICLE ENTERED</small>';$('vehicleName').style.opacity=1;clearTimeout($('vehicleName').timer);$('vehicleName').timer=setTimeout(()=>$('vehicleName').style.opacity=0,2600);}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
 function waterAt(p){return p.z < -158 && Math.abs(p.x)<258}
 function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)}
@@ -325,10 +351,15 @@ function update(dt){
  const lookDir=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
  if(cameraMode===1){
   // First-person view sits just above the character's eyes or behind the windscreen.
-  camera.position.set(target.x,target.y+(inCar?1.83:2.08),target.z);
-  const viewTarget=camera.position.clone().add(lookDir.multiplyScalar(12));
-  viewTarget.y+=pitch*7;
-  camera.lookAt(viewTarget);
+  if(inCar){
+   const cockpitPos=inCar.group.localToWorld(new THREE.Vector3(-.48,1.62,.34));
+   camera.position.copy(cockpitPos);
+   const carForward=new THREE.Vector3(0,0,1).applyQuaternion(inCar.group.quaternion);
+   const viewTarget=cockpitPos.clone().addScaledVector(carForward,14);viewTarget.y+=pitch*5;camera.lookAt(viewTarget);
+  }else{
+   camera.position.set(target.x,target.y+2.08,target.z);
+   const viewTarget=camera.position.clone().add(lookDir.multiplyScalar(12));viewTarget.y+=pitch*7;camera.lookAt(viewTarget);
+  }
  }else{
   const camDist=cameraMode===2?(inCar?15:11.5):(inCar?10:7.5);
   const camHeight=cameraMode===2?(inCar?6.2:5.1):(inCar?4.1:3.2);
@@ -336,7 +367,7 @@ function update(dt){
   camera.position.lerp(desired,Math.min(1,dt*8));
   camera.lookAt(target.x,target.y+(inCar?1.1:1.55),target.z);
  }
- $('cameraMode').textContent='CAMERA · '+['THIRD PERSON','FIRST PERSON','CINEMATIC'][cameraMode];
+ $('cameraMode').textContent='CAMERA · '+['THIRD PERSON','FIRST PERSON','CINEMATIC'][cameraMode];$('mode').textContent=inCar?inCar.name:'ON FOOT';
  if(!inCar)player.rotation.y=yaw;
  $('coords').textContent='X '+Math.round(target.x)+'  Z '+Math.round(target.z);
  $('location').textContent=cityName(target);
