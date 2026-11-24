@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 026</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 027</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 026 fixes the shoreline map and reserves a flatter airport site farther beyond the countryside.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 027 adds a natural curved coast, connected airport road and Seabright Airport.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -91,9 +91,20 @@ for(let i=0;i<terrainPos.count;i++){
 }
 terrainGeo.computeVertexNormals();
 const ground=new THREE.Mesh(terrainGeo,mats.grass);ground.receiveShadow=true;ground.frustumCulled=false;scene.add(ground);
-const ocean=new THREE.Mesh(new THREE.PlaneGeometry(900,400),new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false,depthWrite:true}));ocean.rotation.x=-Math.PI/2;ocean.position.set(0,-.055,-350);ocean.receiveShadow=false;ocean.castShadow=false;ocean.frustumCulled=false;scene.add(ocean);
+// The ocean reaches farther inland so the shoreline can curve naturally instead of ending in a straight edge.
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(900,460),new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false,depthWrite:true}));ocean.rotation.x=-Math.PI/2;ocean.position.set(0,-.055,-340);ocean.receiveShadow=false;ocean.castShadow=false;ocean.frustumCulled=false;scene.add(ocean);
 const waterSurface=0;
-const beach=box(900,.35,26.5,mats.sand,0,-.05,-141.75);
+function shorelineAt(x){return -158+Math.sin(x*.017)*13+Math.sin(x*.043+1.4)*5+Math.sin(x*.008-0.7)*8}
+{
+ const v=[],idx=[];
+ for(let x=-450;x<=450;x+=5){
+  const shore=shorelineAt(x);
+  for(const z of [shore-5,shore+9])v.push(x,terrainHeight(x,z)+.025,z);
+ }
+ for(let i=0;i<180;i++){const k=i*2;idx.push(k,k+2,k+1,k+1,k+2,k+3)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();
+ const sand=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xd6c18d,roughness:.98,side:THREE.DoubleSide}));sand.receiveShadow=true;scene.add(sand);
+}
 const roadMat=mats.asphalt;
 // Fixed world seed: the city layout now stays identical on every load.
 let seed=0x51AB71;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
@@ -208,11 +219,54 @@ function dirtRoad(points,width=7){
  const mesh=new THREE.Mesh(geo,mat(0x806b4d,.98));mesh.receiveShadow=true;mesh.frustumCulled=false;scene.add(mesh);
  ruralRoads.push(points.map(p=>[p[0],p[1]]));
 }
-dirtRoad([[-420,-220],[-345,-205],[-290,-155],[-245,-105],[-225,-35]],7);
+dirtRoad([[-430,-115],[-375,-92],[-320,-70],[-270,-48],[-235,-12]],7);
 dirtRoad([[-430,45],[-365,75],[-330,145],[-270,205],[-205,240]],6);
 dirtRoad([[-330,365],[-265,325],[-205,285],[-130,270],[-55,295],[25,345]],7);
-dirtRoad([[-375,-355],[-300,-330],[-230,-300],[-155,-285],[-80,-305],[10,-355]],7);
-dirtRoad([[80,-400],[145,-350],[185,-300],[220,-250]],6);
+dirtRoad([[-420,185],[-365,205],[-315,230],[-260,250],[-215,260]],7);
+dirtRoad([[70,270],[125,295],[175,320],[215,345]],6);
+// Airport access road, airport grounds and facilities.
+const airportRoadPath=[[220,160],[232,190],[250,220],[275,245],[310,260],[350,275],[382,298]];
+const airportRoadMat=mat(0x303b42);
+for(let i=0;i<airportRoadPath.length-1;i++){
+ const a=airportRoadPath[i],b=airportRoadPath[i+1],dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz),nx=-dz/len*5,nz=dx/len*5;
+ const verts=[a[0]+nx,terrainHeight(a[0]+nx,a[1]+nz)+.12,a[1]+nz,a[0]-nx,terrainHeight(a[0]-nx,a[1]-nz)+.12,a[1]-nz,b[0]+nx,terrainHeight(b[0]+nx,b[1]+nz)+.12,b[1]+nz,b[0]-nx,terrainHeight(b[0]-nx,b[1]-nz)+.12,b[1]-nz];
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setIndex([0,2,1,1,2,3]);g.computeVertexNormals();
+ const m=new THREE.Mesh(g,airportRoadMat);m.material.side=THREE.DoubleSide;m.receiveShadow=true;scene.add(m);
+}
+const runwayMat=mat(0x30383d),concrete=mat(0xb9b9aa),airportWhite=mat(0xf0eee1),airportYellow=mat(0xe6c75e);
+box(24,.18,154,runwayMat,330,-.105,340);
+for(let z=270;z<=410;z+=18){box(.35,.025,7,airportWhite,330,-.002,z)}
+for(const x of [320,340]){box(.22,.025,5,airportWhite,x,-.002,340)}
+// Runway threshold bars and taxiway lead toward the terminal apron.
+for(let i=-4;i<=4;i++){box(1.1,.025,5,airportWhite,330+i*2.1,-.002,267);box(1.1,.025,5,airportWhite,330+i*2.1,-.002,413)}
+box(12,.14,66,concrete,355,-.115,325);
+box(34,.14,28,concrete,385,-.115,316);
+// Terminal, glass frontage, roof details and entrance canopy.
+box(48,9,19,mat(0x9baeb0),392,4.45,305);
+box(44,4,.22,mat(0x47717c),392,4.3,295.35);
+for(let x=375;x<=409;x+=6)box(3.8,3.4,.12,windowMat,x,4.1,295.2);
+box(52,.65,22,mat(0x515d60),392,9.25,305);
+box(15,.35,5,concrete,374,1,291);
+for(let x=369;x<=415;x+=12)box(.35,2.4,.35,pole,x,1.2,291);
+// Control tower with glazed observation room.
+box(5,17,5,mat(0xb8b8ad),420,8.5,350);
+box(9,3.2,9,mat(0x344f5a),420,17.9,350);
+box(9.5,.35,9.5,mat(0x626d6e),420,19.65,350);
+for(let x of [416,420,424])box(.08,2.2,8.8,windowMat,x,17.9,350);
+// Hangar and apron.
+box(32,11,24,mat(0xb5b6ad),390,5.5,398);
+box(18,8,.35,mat(0x59676a),390,4,385.8);
+box(36,.55,28,mat(0x515d60),390,11.25,398);
+box(20,.12,24,concrete,355,-.1,385);
+// Helipad and a simple static aircraft silhouette on the apron.
+box(24,.14,24,concrete,420,-.11,405);
+const helipadRing=new THREE.Mesh(new THREE.RingGeometry(8.3,8.7,48),airportWhite);helipadRing.rotation.x=-Math.PI/2;helipadRing.position.set(420,-.025,405);scene.add(helipadRing);
+box(7,.3,2,airportWhite,420,.01,405);box(2,.3,7,airportWhite,420,.01,405);
+const planeBody=box(2.2,1.5,15,mat(0xe5e8e5),350,.95,385);
+box(18,.35,3.2,mat(0xd9dfdc),350,1.15,386);
+box(5,.3,3,mat(0xd9dfdc),350,1.55,379);
+box(.3,2.4,2.4,mat(0xd9dfdc),350,2,392);
+
 // Street lights
 const pole=mat(0x303b40),lamp=mat(0xffe4a6,.4);
 const verticalStreets=roadSegments.filter(v=>v.orientation==='v'),horizontalStreets=roadSegments.filter(v=>v.orientation==='h');
@@ -320,7 +374,7 @@ for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+r
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');$('vehicleName').style.opacity=0;return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=new THREE.Group();const parts=makeHumanoid(d,mat(0x283e52));scene.add(d);const side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),c.angle);d.position.copy(c.group.position).addScaledVector(side,2.1);d.position.y=0;d.rotation.y=c.angle;const away=new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle));ejectedDrivers.push({group:d,parts,life:3.5,velocity:away.multiplyScalar(3.5),phase:0});notice('Driver thrown out!')}inCar=c;player.visible=false;notice(c.name+' • ENTERED');$('vehicleName').innerHTML=c.name+'<small>VEHICLE ENTERED</small>';$('vehicleName').style.opacity=1;clearTimeout($('vehicleName').timer);$('vehicleName').timer=setTimeout(()=>$('vehicleName').style.opacity=0,2600);}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
-function waterAt(p){return p.z < -158 && Math.abs(p.x)<430 && terrainHeight(p.x,p.z)<=.15}
+function waterAt(p){return p.z < shorelineAt(p.x) && Math.abs(p.x)<448 && terrainHeight(p.x,p.z)<=.15}
 function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)}
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
@@ -525,10 +579,11 @@ function drawMinimap(){
    if(waterAt({x:wx,z:wz}))ctx.fillRect(px,py,4,4);
   }
  }
+ // A gently irregular sand shoreline follows the same curve as the world.
  ctx.fillStyle='#d5c18c';
- for(let px=0;px<W;px+=4){
-  const wx=px/scale-450;
-  if(terrainHeight(wx,-145)<=.15)ctx.fillRect(px,mapZ(-145),4,10);
+ for(let px=0;px<W;px+=2){
+  const wx=px/scale-450,shore=shorelineAt(wx);
+  ctx.fillRect(px,mapZ(shore+8),2,Math.max(1,(13*scale)));
  }
  // Generated road network, matching the expanded 900m world rather than drawing a fixed grid.
  ctx.fillStyle='#303a40';
@@ -539,9 +594,14 @@ function drawMinimap(){
  // Country dirt tracks and the clear airport reservation.
  ctx.strokeStyle='#92734e';ctx.lineWidth=Math.max(2,7*scale);ctx.lineCap='round';ctx.lineJoin='round';
  for(const path of ruralRoads){ctx.beginPath();path.forEach((p,i)=>{const x=mapX(p[0]),z=mapZ(p[1]);if(i===0)ctx.moveTo(x,z);else ctx.lineTo(x,z)});ctx.stroke()}
- ctx.fillStyle='#9aa878';ctx.fillRect(mapX(255),mapZ(440),185*scale,195*scale);
- ctx.strokeStyle='#d8d1a8';ctx.lineWidth=1.5;ctx.strokeRect(mapX(255),mapZ(440),185*scale,195*scale);
- ctx.fillStyle='#e7e4c7';ctx.font='9px sans-serif';ctx.fillText('AIRPORT SITE',mapX(310),mapZ(340));
+ // Airport grounds, runway, terminal and the new access road.
+ ctx.fillStyle='#9aa878';ctx.fillRect(mapX(255),mapZ(245),185*scale,195*scale);
+ ctx.strokeStyle='#d8d1a8';ctx.lineWidth=1.5;ctx.strokeRect(mapX(255),mapZ(245),185*scale,195*scale);
+ ctx.fillStyle='#30383d';ctx.fillRect(mapX(318),mapZ(417),24*scale,154*scale);
+ ctx.fillStyle='#f0eee1';for(let z=270;z<=410;z+=18)ctx.fillRect(mapX(329.8),mapZ(z),.4*scale,7*scale);
+ ctx.fillStyle='#b9b9aa';ctx.fillRect(mapX(368),mapZ(328),48*scale,25*scale);
+ ctx.fillStyle='#e7e4c7';ctx.font='9px sans-serif';ctx.fillText('SEABRIGHT AIRPORT',mapX(350),mapZ(252));
+ ctx.strokeStyle='#303a40';ctx.lineWidth=Math.max(2,10*scale);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();airportRoadPath.forEach((p,i)=>{if(i===0)ctx.moveTo(mapX(p[0]),mapZ(p[1]));else ctx.lineTo(mapX(p[0]),mapZ(p[1]))});ctx.stroke();
  // Unique landmarks are marked separately so the map is not just a repeated grid.
  
  ctx.fillStyle='#c9d8dd';ctx.fillRect(mapX(131),mapZ(73),38*scale,24*scale);
