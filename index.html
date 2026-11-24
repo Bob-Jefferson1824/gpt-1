@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 008</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 009</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 006 fixes the coastal road boundary and minimap road drawing. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city uses generated irregular streets, roads that stop before the beach and ocean, accurate minimap road lengths, pointer-lock mouse look, and varied neighbourhood blocks. It is still a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 009 adds AI traffic, driver takeovers, sinking vehicles, health and stamina. Explore the generated coastal city, enter cars, and watch the traffic move around you. Mouse look locks when you enter the city. This is still an evolving open-world prototype.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -175,7 +175,7 @@ document.addEventListener('pointerlockerror',()=>{$('lockHint').style.display='b
 document.addEventListener('click',()=>{if($('start').style.display==='none'&&!locked)requestMouseLock()});
 document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});document.addEventListener('mousedown',e=>{if(e.button===0&&$('start').style.display==='none')punch()});
 $('play').onclick=()=>{$('start').style.display='none'};
-const cars=[];const carColors=[0xb83d36,0x315c83,0xd5d1c4,0x313b43,0xc18b35,0x47755d];
+const cars=[];const ejectedDrivers=[];const carColors=[0xb83d36,0x315c83,0xd5d1c4,0x313b43,0xc18b35,0x47755d];
 function makeCar(x,z,color,angle=0,playerCar=false){
  const g=new THREE.Group();scene.add(g);g.position.set(x,.2,z);g.rotation.y=angle;
  const body=box(2.15,.72,4.2,mat(color,.4,.25),0,.72,0,g);box(1.55,.72,2.05,mats.glass,0,1.38,-.12,g);box(1.85,.12,1.2,mat(0x242c31),0,1.82,-.1,g);
@@ -191,7 +191,7 @@ const myCar=makeCar(7,5,0xd64b37,Math.PI,true);myCar.ai=false;myCar.driver=false
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
 for(let i=0;i<32;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const body=box(.48,.9,.32,shirts[i%shirts.length],0,1,0,g);const h=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),skin);h.position.y=1.58;g.add(h);g.position.set(x,0,z);scene.add(g);people.push({g,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=1.1;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
-function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.occupant.visible=false;c.speed=0;c.ai=false;notice('Driver pulled out. Vehicle taken.')}inCar=c;player.visible=false;notice(c.ai?'Vehicle entered':'Vehicle taken');}}
+function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=c.occupant;c.group.remove(d);scene.add(d);d.position.set(c.group.position.x+1.5,0,c.group.position.z);d.rotation.y=c.angle; ejectedDrivers.push({group:d,life:1.15});notice('Driver pulled out. Vehicle taken.')}inCar=c;player.visible=false;notice('Vehicle taken');}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
 function waterAt(p){return p.z < -158 && Math.abs(p.x)<258}
 function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)}
@@ -200,16 +200,20 @@ const clock=new THREE.Clock();
 function update(dt){
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  // AI traffic follows its lane and steers around the city independently.
- for(const c of cars){if(c===inCar||!c.ai||c.sinking)continue;c.speed+=(c.cruise-c.speed)*dt*.7;c.angle+=Math.sin(clock.elapsedTime*.22+c.group.position.x*.03)*dt*.045;const nx=c.group.position.x-Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z-Math.cos(c.angle)*c.speed*dt;if(Math.abs(nx)>215||nz<-115||nz>175||carBlocked(c,nx,nz)){c.angle+=Math.PI*.75;c.speed*=.65}else{c.group.position.x=nx;c.group.position.z=nz}c.group.rotation.y=c.angle;}
+ for(const c of cars){if(c.sinking){c.sinkTime+=dt;c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);continue}if(c===inCar||!c.ai)continue;c.speed+=(c.cruise-c.speed)*dt*.7;c.angle+=Math.sin(clock.elapsedTime*.22+c.group.position.x*.03)*dt*.045;const nx=c.group.position.x-Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z-Math.cos(c.angle)*c.speed*dt;if(Math.abs(nx)>215||nz<-175||nz>175||carBlocked(c,nx,nz)){c.angle+=Math.PI*.75;c.speed*=.65}else{c.group.position.x=nx;c.group.position.z=nz}c.group.rotation.y=c.angle;if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0}}
  if(inCar){
-  const c=inCar,drive=(keys.KeyW?1:0)-(keys.KeyS?1:0),steer=(keys.KeyA?1:0)-(keys.KeyD?1:0);
+  const c=inCar;
+  if(c.sinking){c.sinkTime+=dt;c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);if(c.sinkTime>2.2){player.position.set(c.group.position.x,0,c.group.position.z+3);player.visible=true;inCar=null;drownTimer=0;notice('Car sank. Get to shore!')}}
+  else{
+  const drive=(keys.KeyW?1:0)-(keys.KeyS?1:0),steer=(keys.KeyA?1:0)-(keys.KeyD?1:0);
   c.speed+=drive*dt*19;c.speed*=Math.pow(.986,dt*60);c.speed=Math.max(-12,Math.min(34,c.speed));
   c.angle+=steer*dt*(.85+Math.abs(c.speed)*.035)*Math.sign(c.speed||1);c.group.rotation.y=c.angle;
   const nx=c.group.position.x-Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z-Math.cos(c.angle)*c.speed*dt;
   if(Math.abs(nx)<245&&nz>-340&&nz<230&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz}
-  if(waterAt(c.group.position)){c.sinking=true;c.sinkTime+=dt;c.speed*=Math.pow(.9,dt*60);c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);c.submerged=Math.min(1,c.submerged+dt*.2);if(c===inCar&&c.sinkTime>2.2){player.position.set(c.group.position.x,0,c.group.position.z+3);player.visible=true;inCar=null;drownTimer=0;notice('Car sinking! Get out!');}}
-  player.position.copy(c.group.position);yaw=c.angle;for(const n of people){if(n.down||Math.abs(c.speed)<4)continue;const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z;if(Math.hypot(dx,dz)<2.65){knockOutPedestrian(n,new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle)).multiplyScalar(1.1));c.speed*=.78;}}
-  $('mode').textContent='DRIVING';$('speed').textContent='SPEED  '+Math.round(Math.abs(c.speed)*3.6)+' km/h';
+  if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0;c.submerged=Math.min(1,c.submerged+dt*.2);notice('Water! Your car is sinking!')}
+  if(inCar===c)player.position.copy(c.group.position);yaw=c.angle;for(const n of people){if(n.down||Math.abs(c.speed)<4)continue;const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z;if(Math.hypot(dx,dz)<2.65){knockOutPedestrian(n,new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle)).multiplyScalar(1.1));c.speed*=.78;}}
+  $('mode').textContent=c.sinking?'VEHICLE SINKING':'DRIVING';$('speed').textContent='SPEED  '+Math.round(Math.abs(c.speed)*3.6)+' km/h';
+  }
  }else{
   const p=player.position;swimming=waterAt(p);const sprinting=keys.ShiftLeft&&stamina>1&&!swimming;const sp=swimming?3.5:(sprinting?10:6);
   if(sprinting&&moveInputActive())stamina=Math.max(0,stamina-dt*24);else stamina=Math.min(100,stamina+dt*(swimming?7:17));
@@ -219,6 +223,8 @@ function update(dt){
   p.x=Math.max(-245,Math.min(245,p.x));p.z=Math.max(-340,Math.min(225,p.z));resolvePlayerBuildings();
   $('speed').textContent='SPEED  '+(move.lengthSq()?Math.round(sp*3.6):0)+' km/h';
  }
+ // Ejected drivers stumble away briefly, then leave the scene.
+ for(let i=ejectedDrivers.length-1;i>=0;i--){const d=ejectedDrivers[i];d.life-=dt;d.group.position.x+=Math.sin(d.group.rotation.y)*dt*2.2;d.group.position.z+=Math.cos(d.group.rotation.y)*dt*2.2;d.group.rotation.x=Math.min(1.2,d.group.rotation.x+dt*1.8);if(d.life<=0){scene.remove(d.group);d.group.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material!==mats.glass)o.material.dispose()}});ejectedDrivers.splice(i,1)}}
  // Arcade hit particles fade quickly and never leave marks.
  hitCooldown=Math.max(0,hitCooldown-dt);for(let i=hitParticles.length-1;i>=0;i--){const p=hitParticles[i];p.life-=dt;p.vel.y-=9*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.rotation.x+=dt*8;p.mesh.rotation.z+=dt*6;p.mesh.scale.setScalar(Math.max(.01,p.life));if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();hitParticles.splice(i,1)}}
  // Pedestrians can be knocked out by punches or moving cars, then respawn elsewhere.
