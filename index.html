@@ -138,7 +138,8 @@ for(let x=-245;x<245;x+=18){tree(x,-126,.8+rand()*.4);tree(x,205,.8+rand()*.5)}
 for(let z=-110;z<190;z+=28){tree(-210,z,.8);tree(210,z,.8)}
 // Street lights
 const pole=mat(0x303b40),lamp=mat(0xffe4a6,.4);
-for(let x=-180;x<=180;x+=60)for(let z=-115;z<=180;z+=60){box(.22,6,.22,pole,x+10,3,z+10);box(2,.18,.18,pole,x+11,5.8,z+10);box(.8,.18,.7,lamp,x+12,5.7,z+10)}
+const verticalStreets=roadSegments.filter(v=>v.orientation==='v'),horizontalStreets=roadSegments.filter(v=>v.orientation==='h');
+for(const v of verticalStreets)for(const h of horizontalStreets){if(rand()>.48)continue;const x=v.x+v.w/2+3,z=h.z+h.w/2+3;box(.22,6,.22,pole,x,3,z);box(2,.18,.18,pole,x+1,5.8,z);box(.8,.18,.7,lamp,x+2,5.7,z)}
 // Park plaza and waterfront promenade
 box(80,.25,42,mat(0xc5bda7),-130,.05,80);for(let i=0;i<12;i++)tree(-165+(i%6)*13,64+Math.floor(i/6)*30,.65);
 // Distinct landmarks: marina pier, sports court, fuel stop and a small plaza fountain.
@@ -178,7 +179,8 @@ function makeCar(x,z,color,angle=0,playerCar=false){
  for(const sx of [-.7,.7]){box(.28,.18,.08,mat(0xffe6ae),sx,.82,2.12,g);box(.3,.18,.08,mat(0xd63b30),sx,.82,-2.12,g)}
  const c={group:g,speed:0,angle,playerCar};cars.push(c);return c;
 }
-for(let i=0;i<18;i++){if(i%2===0){const roadX=roadXs[Math.floor(rand()*roadXs.length)];const z=-135+rand()*300;makeCar(roadX,z,carColors[i%carColors.length],0)}else{const roadZ=roadZs[Math.floor(rand()*roadZs.length)];const x=-185+rand()*370;makeCar(x,roadZ,carColors[i%carColors.length],Math.PI/2)}}
+const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
+for(let i=0;i<18;i++){if(i%2===0){const roadX=drivableXs[Math.floor(rand()*drivableXs.length)];const z=-135+rand()*300;makeCar(roadX,z,carColors[i%carColors.length],0)}else{const roadZ=drivableZs[Math.floor(rand()*drivableZs.length)];const x=-185+rand()*370;makeCar(x,roadZ,carColors[i%carColors.length],Math.PI/2)}}
 const myCar=makeCar(7,5,0xd64b37,Math.PI,true);
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
