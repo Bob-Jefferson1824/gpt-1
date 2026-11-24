@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 014</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 015</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 014 improves traffic right-of-way at intersections and adjusts the driver-seat camera and steering wheel.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 015 corrects vehicle facing and adds a simple bonnet camera for driving.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -215,16 +215,12 @@ function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
  if(type==='suv'){box(v.cabW*.72,.1,.16,trim,0,v.h+v.cabH+.02,-.05,g);box(.12,.55,.12,trim,-v.cabW*.42,v.h+v.cabH*.3,0,g);box(.12,.55,.12,trim,v.cabW*.42,v.h+v.cabH*.3,0,g)}
  if(type==='van'){box(v.w*.94,.18,v.l*.12,trim,0,v.h+.12,-v.l*.38,g);box(.08,.7,.08,trim,-v.w*.48,v.h+.25,-.2,g);box(.08,.7,.08,trim,v.w*.48,v.h+.25,-.2,g)}
  if(type==='pickup'){box(v.w*.94,.48,v.l*.38,body,0,v.h+.20,-v.l*.30,g);box(v.w*.78,.06,v.l*.30,trim,0,v.h+.45,-v.l*.30,g)}
- // Driver-seat dashboard and steering wheel.
- const dash=mat(0x20282b,.72),seat=mat(0x30383b,.85);
- box(v.cabW*.9,.16,.55,dash,0,v.h+.53,cabZ+v.cabL*.25,g);
- const steering=new THREE.Mesh(new THREE.TorusGeometry(.19,.025,8,20),trim);steering.position.set(-v.cabW*.27,v.h+v.cabH*.47,cabZ+v.cabL*.18);steering.rotation.y=0;g.add(steering);
- box(.48,.55,.42,seat,-.48,v.h+.22,cabZ-.05,g);
+ // No detailed cabin interior yet. First-person driving uses a simple bonnet view.
  // AI driver models are hidden to prevent heads and limbs clipping through the roof.
  const occupant=new THREE.Group(),driverParts=makeHumanoid(occupant,mat(0x283e52));occupant.visible=false;g.add(occupant);
  g.scale.set(1.1,1.08,1.1);
  const carNames={compact:'PIPER COMPACT',sedan:'SEABRIGHT SEDAN',suv:'IRONCLAD SUV',van:'CITYLINE VAN',pickup:'RANGER PICKUP'};
- const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,name:carNames[type]||'SEDAN',cockpit:new THREE.Vector3(-v.cabW*.24,v.h+v.cabH*.46,cabZ+v.cabL*.18),sinking:false,sinkTime:0,submerged:0,cruise:8+rand()*2};
+ const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,type,name:carNames[type]||'SEDAN',frontView:new THREE.Vector3(0,v.h+.48,v.l*.30),sinking:false,sinkTime:0,submerged:0,cruise:8+rand()*2};
  cars.push(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
@@ -232,10 +228,10 @@ const trafficTypes=['compact','sedan','suv','van','pickup'];
 for(let i=0;i<36;i++){
  const seg=roadSegments[Math.floor(rand()*roadSegments.length)],dir=rand()<.5?1:-1;
  if(seg.orientation==='v'){
-  const laneX=seg.x+(dir>0?2.3:-2.3),z=seg.z+(rand()-.5)*(seg.d-18),angle=dir>0?Math.PI:0;
+  const laneX=seg.x+(dir>0?2.3:-2.3),z=seg.z+(rand()-.5)*(seg.d-18),angle=dir>0?0:Math.PI;
   makeCar(laneX,z,carColors[i%carColors.length],angle,false,{orientation:'v',fixed:laneX,min:seg.z-seg.d/2+5,max:seg.z+seg.d/2-5,dir},trafficTypes[i%trafficTypes.length]);
  }else{
-  const laneZ=seg.z+(dir>0?-2.3:2.3),x=seg.x+(rand()-.5)*(seg.w-18),angle=dir>0?-Math.PI/2:Math.PI/2;
+  const laneZ=seg.z+(dir>0?-2.3:2.3),x=seg.x+(rand()-.5)*(seg.w-18),angle=dir>0?Math.PI/2:-Math.PI/2;
   makeCar(x,laneZ,carColors[i%carColors.length],angle,false,{orientation:'h',fixed:laneZ,min:seg.x-seg.w/2+5,max:seg.x+seg.w/2-5,dir},trafficTypes[i%trafficTypes.length]);
  }
 }
@@ -300,7 +296,7 @@ function update(dt){
   const tx=vertical?lane.fixed:next,tz=vertical?next:lane.fixed;
   if(!carBlocked(c,tx,tz)){c.group.position.x=tx;c.group.position.z=tz}
   else c.speed=Math.max(0,c.speed-15*dt);
-  c.angle=vertical?(lane.dir>0?Math.PI:0):(lane.dir>0?-Math.PI/2:Math.PI/2);
+  c.angle=vertical?(lane.dir>0?0:Math.PI):(lane.dir>0?Math.PI/2:-Math.PI/2);
   c.group.rotation.y=c.angle;
   if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0}
  }
@@ -311,7 +307,7 @@ function update(dt){
   const drive=(keys.KeyW?1:0)-(keys.KeyS?1:0),steer=(keys.KeyA?1:0)-(keys.KeyD?1:0);
   c.speed+=drive*dt*19;c.speed*=Math.pow(.986,dt*60);c.speed=Math.max(-12,Math.min(34,c.speed));
   c.angle+=steer*dt*(.85+Math.abs(c.speed)*.035)*Math.sign(c.speed||1);c.group.rotation.y=c.angle;
-  const nx=c.group.position.x-Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z-Math.cos(c.angle)*c.speed*dt;
+  const nx=c.group.position.x+Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z+Math.cos(c.angle)*c.speed*dt;
   if(Math.abs(nx)<245&&nz>-340&&nz<230&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz}
   if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0;c.submerged=Math.min(1,c.submerged+dt*.2);notice('Water! Your car is sinking!')}
   if(inCar===c)player.position.copy(c.group.position);yaw=c.angle;for(const n of people){if(n.down||Math.abs(c.speed)<4)continue;const dx=n.g.position.x-c.group.position.x,dz=n.g.position.z-c.group.position.z;if(Math.hypot(dx,dz)<2.65){knockOutPedestrian(n,new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle)).multiplyScalar(1.1));c.speed*=.78;}}
