@@ -119,7 +119,7 @@ function makeCar(x,z,color,angle=0,playerCar=false){
  for(const sx of [-.7,.7]){box(.28,.18,.08,mat(0xffe6ae),sx,.82,2.12,g);box(.3,.18,.08,mat(0xd63b30),sx,.82,-2.12,g)}
  const c={group:g,speed:0,angle,playerCar};cars.push(c);return c;
 }
-for(let i=0;i<18;i++){const x=-170+rand()*340,z=-105+rand()*285;if(Math.abs(x%60)<9||Math.abs(z%60)<9)makeCar(x,z,carColors[i%carColors.length],rand()<.5?0:Math.PI/2)}
+for(let i=0;i<18;i++){if(i%2===0){const roadX=(-3+Math.floor(i/2)%7)*60;const z=-105+rand()*285;makeCar(roadX,z,carColors[i%carColors.length],0)}else{const roadZ=(-2+Math.floor(i/2)%6)*60;const x=-175+rand()*350;makeCar(x,roadZ,carColors[i%carColors.length],Math.PI/2)}}
 const myCar=makeCar(7,5,0xd64b37,Math.PI,true);
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
@@ -172,6 +172,7 @@ function resolvePlayerBuildings(){
   let dx=p.x-qx,dz=p.z-qz,d=Math.hypot(dx,dz);
   if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}
  }
+ for(const car of cars){if(car===inCar)continue;const dx=p.x-car.group.position.x,dz=p.z-car.group.position.z,d=Math.hypot(dx,dz),min=1.7;if(d<min){const safe=Math.max(d,.001);p.x+=dx/safe*(min-d);p.z+=dz/safe*(min-d)}}
 }
 function carBlocked(car,x,z){
  if(circleHitsBuilding(x,z,1.65))return true;
