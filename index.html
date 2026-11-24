@@ -308,6 +308,7 @@ function update(dt){
  if(health<=0){health=0;if(deadTimer<=0){deadTimer=2.2;notice('You are exhausted. Respawning...')}deadTimer-=dt;if(deadTimer<=0){health=100;stamina=100;drownTimer=0;underwater=0;player.position.set(0,0,0);player.visible=true;if(inCar){inCar=null}velocityY=0;}}
  $('healthFill').style.width=health+'%';$('healthText').textContent=Math.ceil(health);$('staminaFill').style.width=stamina+'%';$('staminaText').textContent=Math.ceil(stamina);
  const target=inCar?inCar.group.position:player.position;
+ playerParts.head.visible=cameraMode!==1;
  const lookDir=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
  if(cameraMode===1){
   // First-person view sits just above the character's eyes or behind the windscreen.
