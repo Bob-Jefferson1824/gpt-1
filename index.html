@@ -26,12 +26,12 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 005</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 006</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Y 0</div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicle &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 005 creates a different street layout and neighbourhood arrangement on every visit. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city uses generated irregular streets, varied neighbourhood blocks, pointer-lock mouse look, solid building and vehicle collisions, swimming, and a live minimap. It is still a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 006 fixes the coastal road boundary and minimap road drawing. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city uses generated irregular streets, roads that stop before the beach and ocean, accurate minimap road lengths, pointer-lock mouse look, and varied neighbourhood blocks. It is still a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -51,14 +51,14 @@ const beach=box(520,.35,27,mats.sand,0,-.05,-142);
 const roadMat=mats.asphalt;
 let seed=(Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 function makeAxis(min,max){const a=[min];while(a[a.length-1]<max){const next=Math.min(max,a[a.length-1]+43+rand()*31);if(next-a[a.length-1]<22)break;a.push(next)}return a}
-const roadXs=makeAxis(-195,195),roadZs=makeAxis(-150,180);
+const roadXs=makeAxis(-195,195),roadZs=makeAxis(-105,180);
 // Every load gets a different street rhythm. Some minor streets terminate early,
 // creating irregular blocks instead of the old identical square grid.
 const roadSegments=[];
 function road(x,z,w,d,orientation){const y=orientation==='v'?.035:.02;box(w,.18,d,roadMat,x,y,z);roadSegments.push({x,z,w,d,orientation});}
 for(let i=0;i<roadXs.length;i++){
  const x=roadXs[i],main=i===0||i===roadXs.length-1||i===Math.floor(roadXs.length/2);
- if(main||rand()>.13)road(x,0,main?15:10,350,'v');
+ if(main||rand()>.13)road(x,30,main?15:10,290,'v');
 }
 for(let i=0;i<roadZs.length;i++){
  const z=roadZs[i],main=i===0||i===roadZs.length-1||i===Math.floor(roadZs.length/2);
@@ -67,8 +67,8 @@ for(let i=0;i<roadZs.length;i++){
 // Raised kerbs sit outside the asphalt. No coplanar sidewalk/road surfaces.
 for(const seg of roadSegments){
  if(seg.orientation==='v'){
-  box(2,.12,350,mats.side,seg.x-seg.w/2-1.2,.02,0);
-  box(2,.12,350,mats.side,seg.x+seg.w/2+1.2,.02,0);
+  box(2,.12,290,mats.side,seg.x-seg.w/2-1.2,.02,30);
+  box(2,.12,290,mats.side,seg.x+seg.w/2+1.2,.02,30);
  }else{
   box(390,.12,2,mats.side,0,.02,seg.z-seg.w/2-1.2);
   box(390,.12,2,mats.side,0,.02,seg.z+seg.w/2+1.2);
@@ -77,7 +77,7 @@ for(const seg of roadSegments){
 // Dashed centre markings stop before junctions, preventing overlapping paint meshes.
 for(const seg of roadSegments){
  if(seg.orientation==='v'){
-  for(let z=-165;z<165;z+=15)if(!roadZs.some(q=>Math.abs(q-z)<10))box(.16,.025,5,mats.line,seg.x,.143,z);
+  for(let z=-105;z<165;z+=15)if(!roadZs.some(q=>Math.abs(q-z)<10))box(.16,.025,5,mats.line,seg.x,.143,z);
  }else{
   for(let x=-185;x<185;x+=15)if(!roadXs.some(q=>Math.abs(q-x)<10))box(5,.025,.16,mats.line,x,.128,seg.z);
  }
@@ -180,7 +180,7 @@ function makeCar(x,z,color,angle=0,playerCar=false){
  const c={group:g,speed:0,angle,playerCar};cars.push(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
-for(let i=0;i<18;i++){if(i%2===0){const roadX=drivableXs[Math.floor(rand()*drivableXs.length)];const z=-135+rand()*300;makeCar(roadX,z,carColors[i%carColors.length],0)}else{const roadZ=drivableZs[Math.floor(rand()*drivableZs.length)];const x=-185+rand()*370;makeCar(x,roadZ,carColors[i%carColors.length],Math.PI/2)}}
+for(let i=0;i<18;i++){if(i%2===0){const roadX=drivableXs[Math.floor(rand()*drivableXs.length)];const z=-105+rand()*265;makeCar(roadX,z,carColors[i%carColors.length],0)}else{const roadZ=drivableZs[Math.floor(rand()*drivableZs.length)];const x=-185+rand()*370;makeCar(x,roadZ,carColors[i%carColors.length],Math.PI/2)}}
 const myCar=makeCar(7,5,0xd64b37,Math.PI,true);
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
@@ -250,9 +250,8 @@ function drawMinimap(){
  // Generated road network, matching the world rather than drawing a fixed grid.
  ctx.fillStyle='#303a40';
  for(const seg of roadSegments){
-  const x=(seg.x+260)*scale,z=(seg.z+260)*scale;
-  if(seg.orientation==='v')ctx.fillRect(x-seg.w*scale/2,0,seg.w*scale,H);
-  else ctx.fillRect(0,z-seg.w*scale/2,W,seg.w*scale);
+  const x=(seg.x-seg.w/2+260)*scale,z=(seg.z-seg.d/2+260)*scale;
+  ctx.fillRect(x,z,seg.w*scale,seg.d*scale);
  }
  // Unique landmarks are marked separately so the map is not just a repeated grid.
  ctx.fillStyle='#d2b56e';ctx.fillRect((-106+260)*scale,(-182+260)*scale,72*scale,16*scale);
