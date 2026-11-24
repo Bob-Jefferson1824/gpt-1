@@ -18,6 +18,9 @@
 #panel h1{margin:0 0 7px;font-size:30px;letter-spacing:2px}#panel p{color:#b8cbd5;line-height:1.6;font-size:14px}#panel button{border:0;border-radius:8px;background:#53b8d9;color:#06131c;font-weight:900;padding:13px 20px;font-size:14px;cursor:pointer}#panel .sub{font-size:11px;color:#8098a6;margin-top:15px}
 #notice{position:absolute;top:105px;left:50%;transform:translateX(-50%);padding:8px 13px;background:#07131dcc;border-radius:7px;font-size:12px;opacity:0;transition:opacity .25s}
 #barWrap{position:absolute;right:24px;bottom:25px;width:150px;height:7px;background:#07131dbb;border-radius:8px;display:none;overflow:hidden}#bar{height:100%;width:100%;background:#5bd5ed}
+#minimap{position:absolute;right:22px;bottom:22px;width:176px;height:176px;border:2px solid #d8f4ffbb;border-radius:12px;background:#07131ddd;box-shadow:0 8px 30px #0008;overflow:hidden}#mapCanvas{width:100%;height:100%;display:block}#mapLabel{position:absolute;right:32px;bottom:204px;font-size:9px;letter-spacing:2px;color:#dff8ff;text-shadow:0 1px 4px #000}
+#start{z-index:5}#lockHint{position:absolute;left:50%;top:58%;transform:translateX(-50%);font-size:12px;color:#b9d9e7;display:none}
+@media(max-width:600px){#minimap{width:116px;height:116px;right:10px;bottom:10px}#mapLabel{right:15px;bottom:132px}}
 @media(max-width:600px){#help{font-size:10px;left:10px;bottom:10px}#brand{left:12px;top:12px}#stats{right:10px;top:10px;min-width:110px;font-size:10px}#location{bottom:20px;font-size:10px}}
 </style>
 </head>
@@ -26,9 +29,9 @@
  <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 002</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Y 0</div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicle &nbsp; <b>ESC</b> Release mouse</div>
- <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div>
+ <div id="location">SEABRIGHT • DOWNTOWN</div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>A new build of the coastal city prototype. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city is a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move • Mouse to look • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>A new build of the coastal city prototype. Explore on foot, hop into a car, cruise through the streets, and swim along the coast. The city now has mouse-look pointer lock, solid building and vehicle collisions, clearer road layouts, improved swimming, and a live minimap. It is still a playable prototype, not a finished open-world game.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -42,34 +45,46 @@ const mat=(c,r=.85,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,met
 const mats={asphalt:mat(0x303b42),side:mat(0xb6b7ad),line:mat(0xe8dfc1),grass:mat(0x668b59),sand:mat(0xd6c18d),water: new THREE.MeshStandardMaterial({color:0x1688aa,roughness:.25,metalness:.15,transparent:true,opacity:.88}),glass: new THREE.MeshStandardMaterial({color:0x9ed8e9,roughness:.18,metalness:.35}),white:mat(0xe7e5d9),dark:mat(0x1c252b)};
 const box=(w,h,d,material,x,y,z,parent=scene)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
 const ground=box(520,1,520,mats.grass,0,-.7,0);ground.receiveShadow=true;
-const ocean=box(520,1,180,mats.water,0,-1.2,-245);ocean.receiveShadow=false;
-const beach=box(520,.35,27,mats.sand,0,-.05,-145);
+const ocean=box(520,.12,180,mats.water,0,-.12,-245);ocean.receiveShadow=false;
+const waterSurface=0;
+const beach=box(520,.35,27,mats.sand,0,-.05,-142);
 const roadMat=mats.asphalt;
 function road(x,z,w,d){box(w,.18,d,roadMat,x,.02,z);if(w>d){for(let a=-w/2+5;a<w/2-4;a+=9)box(3,.025,.18,mats.line,x+a,.12,z)}else{for(let a=-d/2+5;a<d/2-4;a+=9)box(.18,.025,3,mats.line,x,.12,z+a)}}
-for(let x=-180;x<=180;x+=60){road(x,0,13,350);box(19,.2,350,mats.side,x,.0,0)}
-for(let z=-120;z<=180;z+=60){road(0,z,390,13);box(390,.2,19,mats.side,0,0,z)}
-// Roadside blocks and varied architecture
+for(let x=-180;x<=180;x+=60){road(x,0,13,350);box(3,.16,350,mats.side,x-8,.03,0);box(3,.16,350,mats.side,x+8,.03,0)}
+for(let z=-120;z<=180;z+=60){road(0,z,390,13);box(390,.16,3,mats.side,0,.03,z-8);box(390,.16,3,mats.side,0,.03,z+8)}
+// Buildings are placed inside city blocks, never over the road lanes.
 const buildingMats=[0xc5b8a4,0x9babb2,0xd1c6b4,0x7d9299,0xd6d0c5,0xb2a18c,0x78858a].map(c=>mat(c));
 const windowMat=new THREE.MeshStandardMaterial({color:0x83b9c7,emissive:0x183947,roughness:.22,metalness:.25});
-let seed=19;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
-for(let gx=-3;gx<=3;gx++)for(let gz=-2;gz<=3;gz++){
- if(Math.abs(gx)<=0&&Math.abs(gz)<=0)continue;
- const cx=gx*60+(rand()-.5)*10,cz=gz*60+(rand()-.5)*10;
- for(let k=0;k<3;k++){
-  const x=cx+(k-1)*15,z=cz+(rand()-.5)*17;
-  if(z < -133)continue;
-  const w=10+rand()*7,d=10+rand()*8,h=9+rand()*34;
-  const b=box(w,h,d,buildingMats[Math.floor(rand()*buildingMats.length)],x,h/2,z);
-  // roof parapet
-  box(w+.5,.6,d+.5,mat(0x555f61),x,h+.25,z);
-  const floors=Math.max(2,Math.floor(h/3.3));
-  for(let f=0;f<floors;f++)for(let side=-1;side<=1;side++){
-   box(1.35,1.35,.08,windowMat,x+side*(w/3),1.9+f*3.1,z+d/2+.05);
+let seed=29;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+const buildingColliders=[];
+function makeBuilding(x,z,w,d,h,style=0){
+ const material=buildingMats[style%buildingMats.length];
+ box(w+.8,.35,d+.8,mat(0x77766d),x,.17,z);
+ box(w,h,d,material,x,h/2+.35,z);
+ box(w+.5,.45,d+.5,mat(0x505b60),x,h+.55,z);
+ // Recessed-looking windows on the two street-facing sides
+ const floors=Math.max(2,Math.floor(h/3.1));
+ for(let f=0;f<floors;f++){
+  for(let side=-1;side<=1;side++){
+   box(1.45,1.45,.07,windowMat,x+side*(w/3),2+f*3.1,z+d/2+.045);
+   box(.07,1.45,1.45,windowMat,x+w/2+.045,2+f*3.1,z+side*(d/3));
   }
  }
+ // Shopfront trim and a detailed roof unit
+ if(h<15){box(w*.72,.22,.12,mat(0x384c54),x,.9,z+d/2+.1);box(w*.22,.8,.2,mat(0x27343b),x,.65,z+d/2+.17)}
+ box(w*.24,.7,d*.22,mat(0x68777a),x-w*.22,h+.92,z-d*.2);
+ buildingColliders.push({minX:x-w/2-.5,maxX:x+w/2+.5,minZ:z-d/2-.5,maxZ:z+d/2+.5});
 }
-// Downtown skyline
-for(let i=0;i<7;i++){const x=-30+i*10,z=92+(rand()-.5)*15,h=48+rand()*38,w=8+rand()*4;box(w,h,12,buildingMats[i%buildingMats.length],x,h/2,z);for(let y=6;y<h-3;y+=5)box(w*.72,.12,12.1,mat(0x66767a),x,y,z)}
+for(let x=-150;x<=150;x+=60){
+ for(let z=-90;z<=150;z+=60){
+  // Two lots per block, with clear setbacks from both crossing roads.
+  const offset=rand()*3;
+  makeBuilding(x-14+offset,z-13,15,18,10+rand()*17,Math.floor(rand()*7));
+  if(rand()>.12)makeBuilding(x+14-offset,z+13,15,17,9+rand()*29,Math.floor(rand()*7));
+ }
+}
+// A recognisable compact downtown cluster, still set back from the carriageways.
+for(let i=0;i<5;i++)makeBuilding(-24+i*12,104,9,14,38+rand()*22,i+1);
 // Trees with trunks and layered foliage
 const trunk=mat(0x644a31),leaf=[0x39734a,0x4f8551,0x6a9254].map(c=>mat(c));
 function tree(x,z,s=1){box(.65*s,3*s,.65*s,trunk,x,1.5*s,z);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(x,(3.5+i*.75)*s,z);q.castShadow=true;scene.add(q)}}
@@ -91,7 +106,8 @@ player.position.set(0,0,0);
 let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0;
 const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
 addEventListener('keyup',e=>keys[e.code]=false);
-renderer.domElement.addEventListener('click',()=>{if(!$('start').style.display||$('start').style.display!=='none')return;if(!locked)renderer.domElement.requestPointerLock()});
+renderer.domElement.addEventListener('click',()=>{if($('start').style.display==='none'&&!locked)renderer.domElement.requestPointerLock()});
+document.addEventListener('pointerlockchange',()=>{$('lockHint').style.display=locked?'none':($('start').style.display==='none'?'block':'none')});
 document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
 document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0022;pitch=Math.max(-.65,Math.min(.42,pitch-e.movementY*.0018))}});
 $('play').onclick=()=>{$('start').style.display='none';renderer.domElement.requestPointerLock()};
@@ -111,7 +127,7 @@ for(let i=0;i<32;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+r
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.visible=true;inCar=null;notice('Exited vehicle');return}const c=nearestCar();if(c){inCar=c;player.visible=false;notice('Vehicle entered');}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
-function waterAt(p){return p.z < -151}
+function waterAt(p){return p.z < -158 && Math.abs(p.x)<258}
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 const clock=new THREE.Clock();
 function update(dt){
@@ -121,15 +137,15 @@ function update(dt){
   c.speed+=drive*dt*19;c.speed*=Math.pow(.986,dt*60);c.speed=Math.max(-12,Math.min(34,c.speed));
   c.angle+=steer*dt*(.85+Math.abs(c.speed)*.035)*Math.sign(c.speed||1);c.group.rotation.y=c.angle;
   const nx=c.group.position.x-Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z-Math.cos(c.angle)*c.speed*dt;
-  if(Math.abs(nx)<245&&nz>-138&&nz<230){c.group.position.x=nx;c.group.position.z=nz}
+  if(Math.abs(nx)<245&&nz>-340&&nz<230&&!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz}
   player.position.copy(c.group.position);yaw=c.angle;
   $('mode').textContent='DRIVING';$('speed').textContent='SPEED  '+Math.round(Math.abs(c.speed)*3.6)+' km/h';
  }else{
   const p=player.position;swimming=waterAt(p);const sp=swimming?3.5:(keys.ShiftLeft?10:6);
   const move=new THREE.Vector3();if(keys.KeyW)move.add(forward);if(keys.KeyS)move.sub(forward);if(keys.KeyD)move.add(right);if(keys.KeyA)move.sub(right);if(move.lengthSq()>0){move.normalize();p.addScaledVector(move,sp*dt);player.rotation.y=Math.atan2(-move.x,-move.z);walkT+=dt*10;legL.rotation.x=Math.sin(walkT)*.65;legR.rotation.x=-Math.sin(walkT)*.65;armL.rotation.x=-Math.sin(walkT)*.4;armR.rotation.x=Math.sin(walkT)*.4}else{legL.rotation.x=legR.rotation.x=armL.rotation.x=armR.rotation.x=0}
-  if(swimming){velocityY+=(keys.Space?3:-1.2)*dt;velocityY*=.97;p.y+=velocityY*dt;p.y=Math.max(-1.8,Math.min(.3,p.y));$('barWrap').style.display='block';underwater=p.y<-.65?Math.min(1,underwater+dt*.12):Math.max(0,underwater-dt*.5);$('bar').style.width=(100-underwater*100)+'%';$('mode').textContent=p.y<-.65?'UNDERWATER':'SWIMMING'}
+  if(swimming){velocityY+=(keys.Space?5:(keys.ShiftLeft?-1.5:-.45))*dt;velocityY*=Math.pow(.94,dt*60);p.y+=velocityY*dt;p.y=Math.max(-2.4,Math.min(.05,p.y));$('barWrap').style.display='block';underwater=p.y<-.8?Math.min(1,underwater+dt*.12):Math.max(0,underwater-dt*.6);$('bar').style.width=(100-underwater*100)+'%';$('mode').textContent=p.y<-.8?'UNDERWATER':'SWIMMING'}
   else{p.y+=velocityY*dt;velocityY-=19*dt;if(p.y<=0){p.y=0;velocityY=0;onGround=true}else onGround=false;$('barWrap').style.display='none';underwater=0;$('mode').textContent='ON FOOT'}
-  p.x=Math.max(-245,Math.min(245,p.x));p.z=Math.max(-245,Math.min(225,p.z));
+  p.x=Math.max(-245,Math.min(245,p.x));p.z=Math.max(-340,Math.min(225,p.z));resolvePlayerBuildings();
   $('speed').textContent='SPEED  '+(move.lengthSq()?Math.round(sp*3.6):0)+' km/h';
  }
  // Pedestrians wander and move away from approaching cars; no injury or violent collision.
@@ -145,7 +161,45 @@ function update(dt){
  const c=nearestCar();const prompt=inCar?'E  EXIT VEHICLE':c?'E  ENTER VEHICLE':swimming?'SPACE  SWIM UP':'';
  $('prompt').style.display=prompt?'block':'none';$('prompt').textContent=prompt;
 }
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);update(dt);renderer.render(scene,camera)}animate();
+// Solid collision helpers: circle-vs-building for the player and cars.
+function circleHitsBuilding(x,z,r){
+ return buildingColliders.some(b=>{const qx=Math.max(b.minX,Math.min(x,b.maxX)),qz=Math.max(b.minZ,Math.min(z,b.maxZ));return (x-qx)**2+(z-qz)**2<r*r});
+}
+function resolvePlayerBuildings(){
+ const p=player.position,r=.62;
+ for(const b of buildingColliders){
+  const qx=Math.max(b.minX,Math.min(p.x,b.maxX)),qz=Math.max(b.minZ,Math.min(p.z,b.maxZ));
+  let dx=p.x-qx,dz=p.z-qz,d=Math.hypot(dx,dz);
+  if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}
+ }
+}
+function carBlocked(car,x,z){
+ if(circleHitsBuilding(x,z,1.65))return true;
+ for(const other of cars){if(other===car)continue;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<3.25)return true}
+ return false;
+}
+function drawMinimap(){
+ const c=$('mapCanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height,scale= W/520;
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#4d7651';ctx.fillRect(0,0,W,H);
+ // shoreline and sea
+ ctx.fillStyle='#167f9c';ctx.fillRect(0,0,W,177);
+ ctx.fillStyle='#d5c18c';ctx.fillRect(0,177,W,19);
+ // street grid
+ ctx.fillStyle='#303a40';
+ for(let x=-180;x<=180;x+=60)ctx.fillRect((x+260)*scale-5,0,10,H);
+ for(let z=-120;z<=180;z+=60)ctx.fillRect(0,(z+260)*scale-5,W,10);
+ // building footprints
+ ctx.fillStyle='#aeb9b6';
+ for(const b of buildingColliders)ctx.fillRect((b.minX+260)*scale,(b.minZ+260)*scale,(b.maxX-b.minX)*scale,(b.maxZ-b.minZ)*scale);
+ // park
+ ctx.fillStyle='#789d61';ctx.fillRect(( -170+260)*scale,(60+260)*scale,80*scale,42*scale);
+ // vehicle markers
+ for(const car of cars){const x=(car.group.position.x+260)*scale,z=(car.group.position.z+260)*scale;ctx.fillStyle=car===inCar?'#fff2a6':'#e5a05d';ctx.fillRect(x-3,z-3,6,6)}
+ const p=inCar?inCar.group.position:player.position,x=(p.x+260)*scale,z=(p.z+260)*scale;
+ ctx.save();ctx.translate(x,z);ctx.rotate(-yaw);ctx.fillStyle='#ffffff';ctx.strokeStyle='#10212b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,7);ctx.lineTo(0,4);ctx.lineTo(-6,7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+}
+let mapTimer=0;
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);update(dt);mapTimer+=dt;if(mapTimer>.12){drawMinimap();mapTimer=0}renderer.render(scene,camera)}animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 })();
 </script>
