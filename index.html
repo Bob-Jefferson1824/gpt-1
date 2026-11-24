@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 027</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 028</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicles & aircraft<br><b>Aircraft:</b> W/S throttle &nbsp; A/D turn<br><b>SPACE</b> climb &nbsp; <b>SHIFT</b> descend<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 027 adds a natural curved coast, connected airport road and Seabright Airport.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 028 improves the countryside, shoreline, airport road and Seabright Airport with drivable aircraft.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -106,8 +106,15 @@ function shorelineAt(x){return -158+Math.sin(x*.017)*13+Math.sin(x*.043+1.4)*5+M
  const ocean=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false,depthWrite:true}));ocean.frustumCulled=false;scene.add(ocean);
 }
 {
- const v=[],idx=[];let n=0;
- for(let x=-450;x<=450;x+=5){const shore=shorelineAt(x);if(terrainHeight(x,shore+7)>1.8)continue;v.push(x,terrainHeight(x,shore-5)+.035,shore-5,x,terrainHeight(x,shore+9)+.035,shore+9);if(n>0){const k=(n-1)*2;idx.push(k,k+2,k+1,k+1,k+2,k+3)}n++}
+ const v=[],idx=[];let last=-1;
+ for(let x=-450;x<=450;x+=5){
+  const shore=shorelineAt(x);
+  if(terrainHeight(x,shore+7)>1.8){last=-1;continue}
+  const current=v.length/3;
+  v.push(x,terrainHeight(x,shore-5)+.035,shore-5,x,terrainHeight(x,shore+9)+.035,shore+9);
+  if(last>=0)idx.push(last,last+2,last+1,last+1,last+2,last+3);
+  last=current;
+ }
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();
  const sand=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:0xd6c18d,roughness:.98,side:THREE.DoubleSide}));sand.receiveShadow=true;scene.add(sand);
 }
