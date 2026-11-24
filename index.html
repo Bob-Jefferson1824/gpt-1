@@ -29,7 +29,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 009</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 010</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>ESC</b> Release mouse</div>
@@ -49,7 +49,7 @@ const mat=(c,r=.85,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,met
 const mats={asphalt:mat(0x303b42),side:mat(0xb6b7ad),line:mat(0xe8dfc1),grass:mat(0x668b59),sand:mat(0xd6c18d),water: new THREE.MeshStandardMaterial({color:0x167f9c,roughness:.38,metalness:.04}),glass: new THREE.MeshStandardMaterial({color:0x9ed8e9,roughness:.18,metalness:.35}),white:mat(0xe7e5d9),dark:mat(0x1c252b)};
 const box=(w,h,d,material,x,y,z,parent=scene)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
 const ground=box(520,1,520,mats.grass,0,-.7,0);ground.receiveShadow=true;
-const ocean=new THREE.Mesh(new THREE.PlaneGeometry(1200,700),new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false}));ocean.rotation.x=-Math.PI/2;ocean.position.set(0,-.055,-430);ocean.receiveShadow=false;ocean.castShadow=false;ocean.frustumCulled=false;scene.add(ocean);
+const ocean=new THREE.Mesh(new THREE.PlaneGeometry(520,180),new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false,depthWrite:true}));ocean.rotation.x=-Math.PI/2;ocean.position.set(0,-.055,-245);ocean.receiveShadow=false;ocean.castShadow=false;ocean.frustumCulled=false;scene.add(ocean);
 const waterSurface=0;
 const beach=box(520,.35,26.5,mats.sand,0,-.05,-141.75);
 const roadMat=mats.asphalt;
@@ -155,9 +155,8 @@ const fountain= new THREE.Mesh(new THREE.CylinderGeometry(4,4,.5,24),mat(0x9a9c9
 // Player
 const player=new THREE.Group();scene.add(player);
 const skin=mat(0xc58f6d),shirt=mat(0x243f59),pants=mat(0x252b35),shoe=mat(0x15191d);
-const torso=box(.9,1.15,.48,shirt,0,1.45,0,player);const head=new THREE.Mesh(new THREE.SphereGeometry(.34,16,12),skin);head.position.y=2.25;head.castShadow=true;player.add(head);
-const legL=box(.32,.85,.35,pants,-.25,.55,0,player),legR=box(.32,.85,.35,pants,.25,.55,0,player);
-const armL=box(.25,.9,.28,skin,-.62,1.48,0,player),armR=box(.25,.9,.28,skin,.62,1.48,0,player);
+const playerParts=makeHumanoid(player,shirt);const {torso,head,legL,legR,armL,armR}=playerParts;
+let punchTime=0;
 player.position.set(0,0,0);
 let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0;
 let health=100,stamina=100,drownTimer=0,deadTimer=0;
@@ -176,22 +175,37 @@ document.addEventListener('click',()=>{if($('start').style.display==='none'&&!lo
 document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});document.addEventListener('mousedown',e=>{if(e.button===0&&$('start').style.display==='none')punch()});
 $('play').onclick=()=>{$('start').style.display='none'};
 const cars=[];const ejectedDrivers=[];const carColors=[0xb83d36,0x315c83,0xd5d1c4,0x313b43,0xc18b35,0x47755d];
-function makeCar(x,z,color,angle=0,playerCar=false){
+function makeHumanoid(g,shirtMaterial,pose='standing'){
+ const torso=box(.9,1.15,.48,shirtMaterial,0,1.45,0,g),head=new THREE.Mesh(new THREE.SphereGeometry(.34,16,12),skin);head.position.y=2.25;head.castShadow=true;g.add(head);
+ const legL=box(.32,.85,.35,pants,-.25,.55,0,g),legR=box(.32,.85,.35,pants,.25,.55,0,g);
+ const armL=box(.25,.9,.28,skin,-.62,1.48,0,g),armR=box(.25,.9,.28,skin,.62,1.48,0,g);
+ return {torso,head,legL,legR,armL,armR};
+}
+function makeCar(x,z,color,angle=0,playerCar=false,lane=null){
  const g=new THREE.Group();scene.add(g);g.position.set(x,.2,z);g.rotation.y=angle;
- const body=box(2.15,.72,4.2,mat(color,.4,.25),0,.72,0,g);box(1.55,.72,2.05,mats.glass,0,1.38,-.12,g);box(1.85,.12,1.2,mat(0x242c31),0,1.82,-.1,g);
+ box(2.15,.72,4.2,mat(color,.4,.25),0,.72,0,g);box(1.55,.72,2.05,mats.glass,0,1.38,-.12,g);box(1.85,.12,1.2,mat(0x242c31),0,1.82,-.1,g);
  for(const wx of [-1.12,1.12])for(const wz of [-1.35,1.35]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.42,.42,.25,16),mat(0x141719));wheel.rotation.z=Math.PI/2;wheel.position.set(wx,.43,wz);g.add(wheel)}
  for(const sx of [-.7,.7]){box(.28,.18,.08,mat(0xffe6ae),sx,.82,2.12,g);box(.3,.18,.08,mat(0xd63b30),sx,.82,-2.12,g)}
- const occupant=new THREE.Group();const driverBody=box(.42,.62,.28,mat(0x283e52),0,1.12,-.1,occupant);const driverHead=new THREE.Mesh(new THREE.SphereGeometry(.17,10,8),skin);driverHead.position.set(0,1.55,-.1);occupant.add(driverHead);g.add(occupant);
- const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,sinking:false,sinkTime:0,submerged:0,cruise:7+rand()*4};cars.push(c);return c;
+ const occupant=new THREE.Group();const driverParts=makeHumanoid(occupant,mat(0x283e52));occupant.position.set(0,-.15,-.05);occupant.scale.set(.82,.82,.82);g.add(occupant);
+ const c={group:g,speed:0,angle,playerCar,ai:!playerCar,driver:!playerCar,occupant,driverParts,lane,sinking:false,sinkTime:0,submerged:0,cruise:7+rand()*4};cars.push(c);return c;
 }
 const drivableXs=roadSegments.filter(v=>v.orientation==='v').map(v=>v.x),drivableZs=roadSegments.filter(v=>v.orientation==='h').map(v=>v.z);
-for(let i=0;i<18;i++){if(i%2===0){const roadX=drivableXs[Math.floor(rand()*drivableXs.length)];const z=-105+rand()*265;makeCar(roadX,z,carColors[i%carColors.length],0)}else{const roadZ=drivableZs[Math.floor(rand()*drivableZs.length)];const x=-185+rand()*370;makeCar(x,roadZ,carColors[i%carColors.length],Math.PI/2)}}
+for(let i=0;i<18;i++){
+ const seg=roadSegments[Math.floor(rand()*roadSegments.length)],dir=rand()<.5?1:-1;
+ if(seg.orientation==='v'){
+  const laneX=seg.x+(dir>0?2.3:-2.3),z=seg.z+(rand()-.5)*(seg.d-18),angle=dir>0?Math.PI:0;
+  makeCar(laneX,z,carColors[i%carColors.length],angle,false,{orientation:'v',fixed:laneX,min:seg.z-seg.d/2+5,max:seg.z+seg.d/2-5,dir});
+ }else{
+  const laneZ=seg.z+(dir>0?-2.3:2.3),x=seg.x+(rand()-.5)*(seg.w-18),angle=dir>0?-Math.PI/2:Math.PI/2;
+  makeCar(x,laneZ,carColors[i%carColors.length],angle,false,{orientation:'h',fixed:laneZ,min:seg.x-seg.w/2+5,max:seg.x+seg.w/2-5,dir});
+ }
+}
 const myCar=makeCar(7,5,0xd64b37,Math.PI,true);myCar.ai=false;myCar.driver=false;myCar.occupant.visible=false;
 // Pedestrians, harmless traffic-aware crowd
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
-for(let i=0;i<32;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const body=box(.48,.9,.32,shirts[i%shirts.length],0,1,0,g);const h=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),skin);h.position.y=1.58;g.add(h);g.position.set(x,0,z);scene.add(g);people.push({g,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=1.1;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
+for(let i=0;i<32;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,0,z);scene.add(g);people.push({g,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
-function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=c.occupant;c.group.remove(d);scene.add(d);d.position.set(c.group.position.x+1.5,0,c.group.position.z);d.rotation.y=c.angle; ejectedDrivers.push({group:d,life:1.15});notice('Driver pulled out. Vehicle taken.')}inCar=c;player.visible=false;notice('Vehicle taken');}}
+function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=new THREE.Group();const parts=makeHumanoid(d,mat(0x283e52));scene.add(d);const side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),c.angle);d.position.copy(c.group.position).addScaledVector(side,2.1);d.position.y=0;d.rotation.y=c.angle;const away=new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle));ejectedDrivers.push({group:d,parts,life:3.5,velocity:away.multiplyScalar(3.5),phase:0});notice('Driver thrown out!')}inCar=c;player.visible=false;notice('Vehicle taken');}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
 function waterAt(p){return p.z < -158 && Math.abs(p.x)<258}
 function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)}
@@ -199,8 +213,17 @@ function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p
 const clock=new THREE.Clock();
 function update(dt){
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
- // AI traffic follows its lane and steers around the city independently.
- for(const c of cars){if(c.sinking){c.sinkTime+=dt;c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);continue}if(c===inCar||!c.ai)continue;c.speed+=(c.cruise-c.speed)*dt*.7;c.angle+=Math.sin(clock.elapsedTime*.22+c.group.position.x*.03)*dt*.045;const nx=c.group.position.x-Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z-Math.cos(c.angle)*c.speed*dt;if(Math.abs(nx)>215||nz<-175||nz>175||carBlocked(c,nx,nz)){c.angle+=Math.PI*.75;c.speed*=.65}else{c.group.position.x=nx;c.group.position.z=nz}c.group.rotation.y=c.angle;if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0}}
+ // AI cars stay centred in their assigned lanes and reverse at the road ends.
+ for(const c of cars){if(c.sinking){c.sinkTime+=dt;c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);continue}if(c===inCar||!c.ai||!c.lane)continue;
+  const lane=c.lane,step=c.cruise*dt*lane.dir;
+  let next=lane.orientation==='v'?c.group.position.z-step:c.group.position.x+step;
+  if(next<lane.min||next>lane.max){lane.dir*=-1;next=lane.orientation==='v'?c.group.position.z+c.cruise*dt*lane.dir:c.group.position.x+c.cruise*dt*lane.dir}
+  const nx=lane.orientation==='v'?lane.fixed:c.group.position.x+(lane.orientation==='h'?step:0),nz=lane.orientation==='h'?lane.fixed:c.group.position.z+(lane.orientation==='v'?-step:0);
+  const tx=lane.orientation==='v'?lane.fixed:nx,tz=lane.orientation==='h'?lane.fixed:nz;
+  if(!carBlocked(c,tx,tz)){c.group.position.x=tx;c.group.position.z=tz;c.speed=c.cruise}
+  c.angle=lane.orientation==='v'?(lane.dir>0?Math.PI:0):(lane.dir>0?-Math.PI/2:Math.PI/2);c.group.rotation.y=c.angle;
+  if(waterAt(c.group.position)){c.sinking=true;c.sinkTime=0;c.speed=0}
+ }
  if(inCar){
   const c=inCar;
   if(c.sinking){c.sinkTime+=dt;c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);if(c.sinkTime>2.2){player.position.set(c.group.position.x,0,c.group.position.z+3);player.visible=true;inCar=null;drownTimer=0;notice('Car sank. Get to shore!')}}
@@ -223,8 +246,11 @@ function update(dt){
   p.x=Math.max(-245,Math.min(245,p.x));p.z=Math.max(-340,Math.min(225,p.z));resolvePlayerBuildings();
   $('speed').textContent='SPEED  '+(move.lengthSq()?Math.round(sp*3.6):0)+' km/h';
  }
- // Ejected drivers stumble away briefly, then leave the scene.
- for(let i=ejectedDrivers.length-1;i>=0;i--){const d=ejectedDrivers[i];d.life-=dt;d.group.position.x+=Math.sin(d.group.rotation.y)*dt*2.2;d.group.position.z+=Math.cos(d.group.rotation.y)*dt*2.2;d.group.rotation.x=Math.min(1.2,d.group.rotation.x+dt*1.8);if(d.life<=0){scene.remove(d.group);ejectedDrivers.splice(i,1)}}
+ // Ejected drivers recover to their feet, then sprint away from the stolen car.
+ for(let i=ejectedDrivers.length-1;i>=0;i--){const d=ejectedDrivers[i];d.life-=dt;d.phase+=dt;const recovery=Math.max(0,1-d.life/3.5);if(d.life>2.65){d.group.rotation.x=Math.max(0,Math.PI/2-recovery*1.25);d.group.position.y=0}else{d.group.rotation.x=0;d.group.position.addScaledVector(d.velocity,dt);d.velocity.multiplyScalar(Math.pow(.94,dt));d.parts.legL.rotation.x=Math.sin(d.phase*12)*.8;d.parts.legR.rotation.x=-Math.sin(d.phase*12)*.8;d.parts.armL.rotation.x=-Math.sin(d.phase*12)*.65;d.parts.armR.rotation.x=Math.sin(d.phase*12)*.65;}if(d.life<=0){scene.remove(d.group);ejectedDrivers.splice(i,1)}}
+ // Punch animation: wind-up, fast extension, then recovery.
+ punchTime=Math.max(0,punchTime-dt);const punchPhase=punchTime>0?1-punchTime/.42:1;const punchSwing=punchTime>0?Math.sin(Math.min(1,punchPhase*1.35)*Math.PI)*1.65:0;
+ armR.rotation.x=-punchSwing;armR.rotation.z=-punchSwing*.22;armL.rotation.x=.18+punchSwing*.12;torso.rotation.x=-punchSwing*.10;
  // Arcade hit particles fade quickly and never leave marks.
  hitCooldown=Math.max(0,hitCooldown-dt);for(let i=hitParticles.length-1;i>=0;i--){const p=hitParticles[i];p.life-=dt;p.vel.y-=9*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.rotation.x+=dt*8;p.mesh.rotation.z+=dt*6;p.mesh.scale.setScalar(Math.max(.01,p.life));if(p.life<=0){scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();hitParticles.splice(i,1)}}
  // Pedestrians can be knocked out by punches or moving cars, then respawn elsewhere.
