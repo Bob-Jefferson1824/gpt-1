@@ -29,13 +29,13 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 025</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 026</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit / take driver’s car<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 025 adds a denser high-rise downtown and opens up the countryside with hills, trees, dirt tracks and reserved airport land.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 026 fixes the shoreline map and reserves a flatter airport site farther beyond the countryside.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -51,6 +51,7 @@ const box=(w,h,d,material,x,y,z,parent=scene)=>{const o=new THREE.Mesh(new THREE
 // Build 024 expands the world to 900m square. The original downtown remains central,
  // while connected outer districts and forested hills fill the new land.
 function smoothRange(a,b,v){const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)}
+const airportReserve={minX:255,maxX:440,minZ:245,maxZ:440};
 function terrainHeight(x,z){
  const edge=Math.max(smoothRange(220,410,Math.abs(x)),smoothRange(215,410,z));
  const peaks=[
@@ -63,7 +64,11 @@ function terrainHeight(x,z){
   const dx=x-px,dz=z-pz;
   h+=amp*Math.exp(-(dx*dx+dz*dz)/(2*spread*spread));
  }
- return h*edge;
+ h*=edge;
+ // Keep the future airport site distant from downtown and level enough for a runway.
+ const flatX=smoothRange(235,260,x)*(1-smoothRange(440,455,x));
+ const flatZ=smoothRange(225,250,z)*(1-smoothRange(440,455,z));
+ return h*(1-flatX*flatZ);
 }
 function applyCarTerrain(car){
  const x=car.group.position.x,z=car.group.position.z,e=.8;
@@ -178,7 +183,6 @@ const trunk=mat(0x644a31),leaf=[0x39734a,0x4f8551,0x6a9254].map(c=>mat(c));
 const treeColliders=[];
 function tree(x,z,s=1){const groundY=terrainHeight(x,z);box(.65*s,3*s,.65*s,trunk,x,groundY+1.5*s,z);for(let i=0;i<3;i++){const q=new THREE.Mesh(new THREE.IcosahedronGeometry((2.3-i*.25)*s,1),leaf[i]);q.position.set(x,groundY+(3.5+i*.75)*s,z);q.castShadow=true;scene.add(q)}treeColliders.push({x,z,r:.72*s})}
 // Keep the airport reservation east of town clear for a future runway, terminal and helipad.
-const airportReserve={minX:250,maxX:440,minZ:35,maxZ:245};
 for(let i=0;i<185;i++){
  const x=-425+rand()*850,z=-420+rand()*820;
  const inCity=Math.abs(x)<235&&z>-120&&z<205;
@@ -316,7 +320,7 @@ for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+r
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c===myCar&&inCar)continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){player.position.copy(inCar.group.position).add(new THREE.Vector3(2,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),inCar.group.rotation.y));player.position.y=0;player.visible=true;inCar=null;notice('Exited vehicle');$('vehicleName').style.opacity=0;return}const c=nearestCar();if(c){if(c.ai&&c.driver){c.driver=false;c.ai=false;c.speed=0;const d=new THREE.Group();const parts=makeHumanoid(d,mat(0x283e52));scene.add(d);const side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),c.angle);d.position.copy(c.group.position).addScaledVector(side,2.1);d.position.y=0;d.rotation.y=c.angle;const away=new THREE.Vector3(-Math.sin(c.angle),0,-Math.cos(c.angle));ejectedDrivers.push({group:d,parts,life:3.5,velocity:away.multiplyScalar(3.5),phase:0});notice('Driver thrown out!')}inCar=c;player.visible=false;notice(c.name+' • ENTERED');$('vehicleName').innerHTML=c.name+'<small>VEHICLE ENTERED</small>';$('vehicleName').style.opacity=1;clearTimeout($('vehicleName').timer);$('vehicleName').timer=setTimeout(()=>$('vehicleName').style.opacity=0,2600);}}
 function notice(t){$('notice').textContent=t;$('notice').style.opacity=1;clearTimeout(notice.timer);notice.timer=setTimeout(()=>$('notice').style.opacity=0,1800)}
-function waterAt(p){return p.z < -158 && Math.abs(p.x)<430}
+function waterAt(p){return p.z < -158 && Math.abs(p.x)<430 && terrainHeight(p.x,p.z)<=.15}
 function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)}
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
@@ -512,9 +516,20 @@ function carBlocked(car,x,z){
 function drawMinimap(){
  const c=$('mapCanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height,scale=W/900,mapX=x=>(x+450)*scale,mapZ=z=>(z+450)*scale;
  ctx.clearRect(0,0,W,H);ctx.fillStyle='#4d7651';ctx.fillRect(0,0,W,H);
- // shoreline and sea
- ctx.fillStyle='#167f9c';ctx.fillRect(0,0,W,mapZ(-158));
- ctx.fillStyle='#d5c18c';ctx.fillRect(0,mapZ(-158),W,(mapZ(-132)-mapZ(-158)));
+ // Shoreline mask follows the actual terrain. Hills that rise above sea level
+ // remain land on the minimap and are not treated as water by movement or vehicles.
+ ctx.fillStyle='#167f9c';
+ for(let py=0;py<H;py+=4){
+  for(let px=0;px<W;px+=4){
+   const wx=px/scale-450,wz=py/scale-450;
+   if(waterAt({x:wx,z:wz}))ctx.fillRect(px,py,4,4);
+  }
+ }
+ ctx.fillStyle='#d5c18c';
+ for(let px=0;px<W;px+=4){
+  const wx=px/scale-450;
+  if(terrainHeight(wx,-145)<=.15)ctx.fillRect(px,mapZ(-145),4,10);
+ }
  // Generated road network, matching the expanded 900m world rather than drawing a fixed grid.
  ctx.fillStyle='#303a40';
  for(const seg of roadSegments){
@@ -524,9 +539,9 @@ function drawMinimap(){
  // Country dirt tracks and the clear airport reservation.
  ctx.strokeStyle='#92734e';ctx.lineWidth=Math.max(2,7*scale);ctx.lineCap='round';ctx.lineJoin='round';
  for(const path of ruralRoads){ctx.beginPath();path.forEach((p,i)=>{const x=mapX(p[0]),z=mapZ(p[1]);if(i===0)ctx.moveTo(x,z);else ctx.lineTo(x,z)});ctx.stroke()}
- ctx.fillStyle='#9aa878';ctx.fillRect(mapX(250),mapZ(245),190*scale,210*scale);
- ctx.strokeStyle='#d8d1a8';ctx.lineWidth=1.5;ctx.strokeRect(mapX(250),mapZ(245),190*scale,210*scale);
- ctx.fillStyle='#e7e4c7';ctx.font='9px sans-serif';ctx.fillText('AIRPORT SITE',mapX(292),mapZ(135));
+ ctx.fillStyle='#9aa878';ctx.fillRect(mapX(255),mapZ(440),185*scale,195*scale);
+ ctx.strokeStyle='#d8d1a8';ctx.lineWidth=1.5;ctx.strokeRect(mapX(255),mapZ(440),185*scale,195*scale);
+ ctx.fillStyle='#e7e4c7';ctx.font='9px sans-serif';ctx.fillText('AIRPORT SITE',mapX(310),mapZ(340));
  // Unique landmarks are marked separately so the map is not just a repeated grid.
  
  ctx.fillStyle='#c9d8dd';ctx.fillRect(mapX(131),mapZ(73),38*scale,24*scale);
