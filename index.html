@@ -40,7 +40,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 037</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 042</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
@@ -48,7 +48,7 @@
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
 <div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>▲ You</span></div></div></div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 041 improves roadblock coverage and adds a visible Army tank at six stars.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 042 fixes the map shoreline, roadblocks, helicopter direction and Army response.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -454,11 +454,12 @@ function makePoliceCar(x,z,angle,index,type='sedan'){const c=makeCar(x,z,0xe5e8e
 for(let i=0;i<8;i++){const seg=roadSegments[(i*5+2)%roadSegments.length];const x=seg.orientation==='v'?seg.x+(i%2?2.3:-2.3):seg.x+(rand()-.5)*(seg.w*.35);const z=seg.orientation==='v'?seg.z+(rand()-.5)*(seg.d*.35):seg.z+(i%2?2.3:-2.3);const angle=seg.orientation==='v'?(i%2?Math.PI:0):(i%2?Math.PI/2:-Math.PI/2);makePoliceCar(x,z,angle,i,i%3===0?'suv':'sedan');}
  // Higher wanted levels bring in clearly marked, non-combat response vehicles.
  function makeSpecialResponse(kind,index,x,z){
-  const isSwat=kind==='SWAT',bodyColor=isSwat?0x18232b:0x59664a,type=isSwat?'van':'suv';
+  const isSwat=kind==='SWAT',bodyColor=isSwat?0x111b25:0x59664a,type='suv';
   const c=makeCar(x,z,bodyColor,0,false,null,type);c.police=true;c.responseKind=kind;c.policeIndex=index;c.group.visible=false;c.ai=false;c.driver=false;c.speed=0;
   box(1.05,.13,.34,mat(0x111820),0,2.15,0,c.group);
   const red=box(.38,.17,.3,mat(0xe13b43,.2,.2),-.27,2.25,0,c.group),blue=box(.38,.17,.3,mat(0x347de0,.2,.2),.27,2.25,0,c.group);c.sirenParts=[red,blue];
-  box(isSwat?2.5:2.35,.22,.08,mat(isSwat?0x4c5961:0x9da58a),0,1.32,-.2,c.group);
+  box(2.15,.24,.09,mat(isSwat?0x263746:0x9da58a),0,1.32,-.2,c.group);
+  if(isSwat){box(1.55,.5,.08,mat(0x263746),0,1.72,-.15,c.group);box(1.65,.12,.08,mat(0xd9e4eb),0,1.78,-.2,c.group);box(1.9,.13,.12,mat(0x111820),0,.62,-2.05,c.group);box(1.9,.13,.12,mat(0x111820),0,.62,2.05,c.group);}
   const label=document.createElement('canvas');label.width=256;label.height=64;const lctx=label.getContext('2d');lctx.fillStyle=isSwat?'#18232b':'#59664a';lctx.fillRect(0,0,256,64);lctx.fillStyle='#ffffff';lctx.font='bold 40px Arial';lctx.textAlign='center';lctx.textBaseline='middle';lctx.fillText(kind,128,34);
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.2,.55),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(label)}));sign.position.set(0,2.35,-.15);c.group.add(sign);
   if(isSwat){for(const side of [-1,1]){box(.09,.55,.09,mat(0x111820),side*1.2,1.2,-.3,c.group);box(.09,.55,.09,mat(0x111820),side*1.2,1.2,.65,c.group)}}
@@ -478,11 +479,12 @@ for(let i=0;i<8;i++){const seg=roadSegments[(i*5+2)%roadSegments.length];const x
  // Real police cruisers parked across selected roads form solid roadblocks.
  const roadblockCars=[];
  function makeRoadblock(seg,offset){
-  const vertical=seg.orientation==='v',crossAngle=vertical?0:Math.PI/2;
+  const vertical=seg.orientation==='v',crossAngle=vertical?Math.PI/2:0;
   const centerX=seg.x+(vertical?0:offset),centerZ=seg.z+(vertical?offset:0);
-  for(let lane=-2;lane<=2;lane++){
-   const x=centerX+(vertical?lane*3.0:0),z=centerZ+(vertical?0:lane*3.0);
-   const c=makePoliceCar(x,z,crossAngle,1,'suv');c.roadblock=true;c.policeIndex=1;c.speed=0;c.cruise=0;c.ai=false;c.driver=false;c.group.visible=false;roadblockCars.push(c);
+  for(let lane=-1;lane<=1;lane++){
+   const x=centerX+(vertical?lane*3.25:0),z=centerZ+(vertical?0:lane*3.25);
+   const c=makePoliceCar(x,z,crossAngle,1,'suv');c.roadblock=true;c.policeIndex=1;c.speed=0;c.cruise=0;c.ai=false;c.driver=false;c.group.visible=false;
+   c.group.userData.roadblock=true;roadblockCars.push(c);
   }
  }
  const mainVertical=roadSegments.filter(v=>v.orientation==='v').sort((a,b)=>a.x-b.x);
@@ -505,6 +507,7 @@ for(let i=0;i<8;i++){const seg=roadSegments[(i*5+2)%roadSegments.length];const x
  const armySign=new THREE.Mesh(new THREE.PlaneGeometry(2.2,.55),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(armyMark)}));armySign.position.set(0,2.15,1.2);armyTank.add(armySign);
  armyTank.visible=false;
  const tankRoad=mainVertical[Math.floor(mainVertical.length/2)];if(tankRoad)armyTank.position.set(tankRoad.x,terrainHeight(tankRoad.x,tankRoad.z-52)+.1,tankRoad.z-52);
+ let armyTankDeployed=false;
 
 
 for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const parts=makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,terrainHeight(x,z),z);scene.add(g);people.push({g,parts,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));const officer=policeOfficers.filter(o=>!o.down&&o.g.visible).map(o=>({o,d:o.g.position.distanceTo(player.position)})).filter(v=>v.d<3.2&&v.o.g.position.clone().sub(player.position).setY(0).normalize().dot(forward)>.15).sort((a,b)=>a.d-b.d)[0]?.o;if(officer){raiseWanted(.35,'Officer attacked');officer.health--;const away=officer.g.position.clone().sub(player.position);away.y=0;away.normalize();officer.g.position.addScaledVector(away,1.15);arcadeBurst(officer.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(officer.health<=0){officer.down=true;officer.respawn=18;officer.knockTimer=1.1;officer.g.rotation.x=Math.PI/2;officer.g.position.y=.04;notice('Officer temporarily taken out')}return}let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;if(policeWitnessed(player.position))raiseWanted(.65,'Assault reported');target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
@@ -523,9 +526,13 @@ function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
  trafficClock+=dt;if($('bigMap').style.display==='flex'&&!mapDrag)drawBigMap();
- const responseActive=wantedLevel>=2;armyTank.visible=wantedLevel>=6;
+ const responseActive=wantedLevel>=2;
+ if(wantedLevel>=6&&!armyTankDeployed){const target=inCar?inCar.group.position:player.position;const ahead=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));armyTank.position.set(target.x+ahead.x*32,terrainHeight(target.x+ahead.x*32,target.z+ahead.z*32)+.08,target.z+ahead.z*32);armyTank.rotation.y=yaw;armyTankDeployed=true;notice('ARMY RESPONSE DEPLOYED');}
+ if(wantedLevel<6)armyTankDeployed=false;
+ armyTank.visible=wantedLevel>=6;
  policeHeli.visible=wantedLevel>=4;
- if(policeHeli.visible){const target=inCar?inCar.group.position:player.position;const orbit=trafficClock*.22,hx=target.x+Math.cos(orbit)*34,hz=target.z+Math.sin(orbit)*34;policeHeli.position.x+=(hx-policeHeli.position.x)*Math.min(1,dt*.7);policeHeli.position.z+=(hz-policeHeli.position.z)*Math.min(1,dt*.7);policeHeli.position.y=target.y+24+Math.sin(trafficClock*1.7)*1.5;const vx=-Math.sin(orbit),vz=Math.cos(orbit);policeHeli.rotation.y=Math.atan2(-vx,-vz);heliBlade.rotation.y+=dt*22;tailBlade.rotation.x+=dt*18;}
+ if(policeHeli.visible){const target=inCar?inCar.group.position:player.position;const orbit=trafficClock*.22,hx=target.x+Math.cos(orbit)*34,hz=target.z+Math.sin(orbit)*34;policeHeli.position.x+=(hx-policeHeli.position.x)*Math.min(1,dt*.7);policeHeli.position.z+=(hz-policeHeli.position.z)*Math.min(1,dt*.7);policeHeli.position.y=target.y+24+Math.sin(trafficClock*1.7)*1.5;const dx=hx-policeHeli.position.x,dz=hz-policeHeli.position.z;
+  if(Math.hypot(dx,dz)>.08)policeHeli.rotation.y=Math.atan2(-dx,-dz);heliBlade.rotation.y+=dt*22;tailBlade.rotation.x+=dt*18;}
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  // Traffic follows its assigned lane, keeps a safe gap, yields to cross traffic,
  // slows at junctions, and accelerates smoothly instead of snapping to full speed.
@@ -767,8 +774,8 @@ function drawMapCanvas(c,zoom=1,centerX=0,centerZ=0){
  // A gently irregular sand shoreline follows the same curve as the world.
  ctx.fillStyle='#d5c18c';
  for(let px=0;px<W;px+=2){
-  const wx=px/scale-450,shore=shorelineAt(wx);
-  if(terrainHeight(wx,shore+7)<=1.8)ctx.fillRect(px,mapZ(shore-5),2,Math.max(1,(14*scale)));
+  const wx=centerX+px/scale-view/2,shore=shorelineAt(wx);
+  if(terrainHeight(wx,shore+7)<=1.8){const sx=mapX(wx),sy=mapZ(shore-5);ctx.fillRect(sx,sy,Math.max(1,2*scale),Math.max(1,14*scale));}
  }
  // Generated road network, matching the expanded 900m world rather than drawing a fixed grid.
  ctx.fillStyle='#303a40';
