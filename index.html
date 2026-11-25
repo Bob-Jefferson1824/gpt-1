@@ -21,9 +21,20 @@
 #panel h1{margin:0 0 7px;font-size:30px;letter-spacing:2px}#panel p{color:#b8cbd5;line-height:1.6;font-size:14px}#panel button{border:0;border-radius:8px;background:#53b8d9;color:#06131c;font-weight:900;padding:13px 20px;font-size:14px;cursor:pointer}#panel .sub{font-size:11px;color:#8098a6;margin-top:15px}
 #notice{position:absolute;top:105px;left:50%;transform:translateX(-50%);padding:8px 13px;background:#07131dcc;border-radius:7px;font-size:12px;opacity:0;transition:opacity .25s}
 #barWrap{position:absolute;right:24px;bottom:25px;width:150px;height:7px;background:#07131dbb;border-radius:8px;display:none;overflow:hidden}#bar{height:100%;width:100%;background:#5bd5ed}
-#minimap{position:absolute;right:22px;bottom:22px;width:176px;height:176px;border:2px solid #d8f4ffbb;border-radius:12px;background:#07131ddd;box-shadow:0 8px 30px #0008;overflow:hidden}#mapCanvas{width:100%;height:100%;display:block}#mapLabel{position:absolute;right:32px;bottom:204px;font-size:9px;letter-spacing:2px;color:#dff8ff;text-shadow:0 1px 4px #000}
+#minimap{position:absolute;right:22px;bottom:22px;width:176px;height:176px;border:2px solid #d8f4ffbb;border-radius:12px;background:#07131ddd;box-shadow:0 8px 30px #0008;overflow:hidden}#mapCanvas{width:100%;height:100%;display:block}
+#bigMap{position:fixed;inset:0;z-index:8;background:#06131df2;display:none;align-items:center;justify-content:center;pointer-events:auto}
+#bigMapPanel{width:min(92vw,900px);height:min(88vh,900px);display:flex;flex-direction:column;background:#102330;border:1px solid #8ed7ee88;border-radius:14px;overflow:hidden;box-shadow:0 18px 70px #000b}
+#bigMapTop{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#0a1a25;color:#eafaff;font-weight:800;letter-spacing:1px}
+#bigMapTop small{display:block;font-size:10px;font-weight:500;letter-spacing:.5px;color:#a9c5d1;margin-top:3px}
+#bigMapControls{display:flex;gap:7px;align-items:center}
+#bigMapControls button{border:1px solid #8ed7ee66;background:#183747;color:#eafaff;border-radius:7px;padding:7px 11px;font-weight:800;cursor:pointer}
+#bigMapCanvasWrap{position:relative;flex:1;min-height:0;background:#4d7651;overflow:hidden}
+#bigMapCanvas{display:block;width:100%;height:100%;cursor:grab}
+#bigMapCanvas.dragging{cursor:grabbing}
+#bigMapLegend{display:flex;flex-wrap:wrap;gap:15px;padding:9px 14px;background:#0a1a25;color:#d8e9ef;font-size:11px}
+#mapLabel{position:absolute;right:32px;bottom:204px;font-size:9px;letter-spacing:2px;color:#dff8ff;text-shadow:0 1px 4px #000}
 #start{z-index:5}#lockHint{position:absolute;left:50%;top:58%;transform:translateX(-50%);font-size:12px;color:#b9d9e7;display:none}
-@media(max-width:600px){#minimap{width:116px;height:116px;right:10px;bottom:10px}#mapLabel{right:15px;bottom:132px}}
+@media(max-width:600px){#minimap{width:116px;height:116px;right:10px;bottom:10px}#mapLabel{right:15px;bottom:132px}#bigMapPanel{width:96vw;height:92vh}#bigMapTop{padding:9px;font-size:12px}#bigMapControls button{padding:6px 8px}#bigMapLegend{gap:8px;font-size:9px}}
 @media(max-width:600px){#help{font-size:10px;left:10px;bottom:10px}#brand{left:12px;top:12px}#stats{right:10px;top:10px;min-width:110px;font-size:10px}#location{bottom:20px;font-size:10px}}
 </style>
 </head>
@@ -33,10 +44,11 @@
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
- <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicles & aircraft<br><b>Plane:</b> W accelerate &nbsp; S brake &nbsp; A/D steer<br><b>SPACE</b> pitch up (needs speed) &nbsp; <b>SHIFT</b> pitch down<br><b>Helicopter:</b> W/S throttle &nbsp; SPACE/SHIFT altitude<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>ESC</b> Release mouse</div>
+ <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicles & aircraft<br><b>Plane:</b> W accelerate &nbsp; S brake &nbsp; A/D steer<br><b>SPACE</b> pitch up (needs speed) &nbsp; <b>SHIFT</b> pitch down<br><b>Helicopter:</b> W/S throttle &nbsp; SPACE/SHIFT altitude<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>M</b> Full map &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 037 adds emergency services, witnessed crimes and police vehicle collisions.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>▲ You</span></div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 038 adds a zoomable city map and emergency-service map markers.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -323,7 +335,7 @@ const PLAYER_SPAWN=new THREE.Vector3(0,0,0);
 player.position.copy(PLAYER_SPAWN);
 let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0,cameraMode=0;
 let health=100,stamina=100,drownTimer=0,deadTimer=0;
-const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='KeyF')punch();if(e.code==='KeyV'){cameraMode=(cameraMode+1)%3;notice(['Third-person camera','First-person camera','Cinematic camera'][cameraMode]);}if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
+const keys={};addEventListener('keydown',e=>{if(e.code==='KeyM'&&!e.repeat){toggleBigMap();e.preventDefault();return}if(e.code==='Escape'&&$('bigMap').style.display==='flex'){toggleBigMap(false);return}keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='KeyF')punch();if(e.code==='KeyV'){cameraMode=(cameraMode+1)%3;notice(['Third-person camera','First-person camera','Cinematic camera'][cameraMode]);}if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
 addEventListener('keyup',e=>keys[e.code]=false);
 function requestMouseLock(){
  if($('start').style.display!=='none'||locked)return;
@@ -455,7 +467,7 @@ function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
- trafficClock+=dt;
+ trafficClock+=dt;if($('bigMap').style.display==='flex'&&!mapDrag)drawBigMap();
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  // Traffic follows its assigned lane, keeps a safe gap, yields to cross traffic,
  // slows at junctions, and accelerates smoothly instead of snapping to full speed.
@@ -679,8 +691,11 @@ function toppleObstacle(obstacle){if(!obstacle||obstacle.fallen)return;obstacle.
 function crashCar(car,damage,position){if(!car||car.aircraft||car.crashed||car.crashCooldown>0)return;car.health=Math.max(0,car.health-damage);car.crashCooldown=.3;car.speed*=-.25;arcadeBurst(position.clone().add(new THREE.Vector3(0,.8,0)));if(car.health<=0){car.crashed=true;car.wreckTimer=12;car.speed=0;arcadeExplosion(position.clone().add(new THREE.Vector3(0,.7,0)),.7);if(inCar===car){player.position.copy(position).add(new THREE.Vector3(2.4,0,2.4));player.position.y=terrainHeight(player.position.x,player.position.z);player.visible=true;inCar=null;velocityY=0;notice('Vehicle wrecked! Get clear!')}else notice('Vehicle wrecked!')}else if(inCar===car){notice('Vehicle damaged • '+car.health+'% condition')}}
 function handleVehicleImpact(car,nx,nz){const speed=Math.abs(car.speed);if(speed<3)return false;const treeHit=treeColliders.find(t=>!t.fallen&&Math.hypot(nx-t.x,nz-t.z)<t.r+1.8);if(treeHit){if(car===inCar&&policeWitnessed(car.group.position))raiseWanted(.3,'Property damage reported');if(speed>7)toppleObstacle(treeHit);crashCar(car,Math.max(5,Math.round(speed*1.7)),new THREE.Vector3(treeHit.x,terrainHeight(treeHit.x,treeHit.z),treeHit.z));return true}const poleHit=lightPoleColliders.find(p=>!p.fallen&&Math.hypot(nx-p.x,nz-p.z)<2.2);if(poleHit){if(car===inCar&&policeWitnessed(car.group.position))raiseWanted(.3,'Property damage reported');if(speed>6)toppleObstacle(poleHit);crashCar(car,Math.max(4,Math.round(speed*1.3)),new THREE.Vector3(poleHit.x,terrainHeight(poleHit.x,poleHit.z),poleHit.z));return true}const other=cars.find(o=>o!==car&&!o.aircraft&&!o.crashed&&o.group.visible&&Math.hypot(nx-o.group.position.x,nz-o.group.position.z)<5.6);if(other){if(car===inCar&&!other.police)raiseWanted(.4,'Vehicle collision reported');const dx=other.group.position.x-car.group.position.x,dz=other.group.position.z-car.group.position.z,dist=Math.max(.01,Math.hypot(dx,dz)),normalX=dx/dist,normalZ=dz/dist,impact=Math.max(3.5,Math.min(19,speed*.72)),sideSlip=(Math.sin(car.angle)*normalZ-Math.cos(car.angle)*normalX);other.impactVX=(other.impactVX||0)+normalX*impact;other.impactVZ=(other.impactVZ||0)+normalZ*impact;other.impactSpin=(other.impactSpin||0)+sideSlip*impact*.045;car.impactVX=(car.impactVX||0)-normalX*impact*.16;car.impactVZ=(car.impactVZ||0)-normalZ*impact*.16;car.impactSpin=(car.impactSpin||0)-sideSlip*impact*.012;const damage=Math.max(10,Math.round(speed*1.65));crashCar(car,damage,car.group.position.clone());if(other.ai){other.health=Math.max(0,(other.health??100)-Math.max(8,Math.round(speed*1.25)));other.speed*=.35;other.crashCooldown=.7;if(other.health<=0){other.crashed=true;other.wreckTimer=12;other.speed=0;notice('Traffic vehicle wrecked!')}arcadeBurst(other.group.position.clone().add(new THREE.Vector3(0,1,0)))}else crashCar(other,Math.max(10,Math.round(speed*1.1)),other.group.position.clone());return true}if(circleHitsBuilding(nx,nz,1.65)){crashCar(car,Math.max(3,Math.round(speed*.9)),car.group.position.clone());return true}return false;
 }
-function drawMinimap(){
- const c=$('mapCanvas'),ctx=c.getContext('2d'),W=c.width,H=c.height,scale=W/900,mapX=x=>(x+450)*scale,mapZ=z=>(z+450)*scale;
+let bigMapZoom=1,bigMapCenter={x:0,z:0},mapDrag=null;
+function toggleBigMap(force){const open=force===undefined?$('bigMap').style.display!=='flex':force;$('bigMap').style.display=open?'flex':'none';if(open){const p=inCar?inCar.group.position:player.position;bigMapCenter={x:p.x,z:p.z};bigMapZoom=1.15;drawBigMap();if(locked)document.exitPointerLock()}else if($('start').style.display==='none')requestMouseLock()}
+function drawBigMap(){drawMapCanvas($('bigMapCanvas'),bigMapZoom,bigMapCenter.x,bigMapCenter.z)}
+function drawMapCanvas(c,zoom=1,centerX=0,centerZ=0){
+ const ctx=c.getContext('2d'),W=c.width,H=c.height,view=900/zoom,scale=W/view,mapX=x=>(x-centerX+view/2)*scale,mapZ=z=>(z-centerZ+view/2)*scale;
  ctx.clearRect(0,0,W,H);ctx.fillStyle='#4d7651';ctx.fillRect(0,0,W,H);
  // Shoreline mask follows the actual terrain. Hills that rise above sea level
  // remain land on the minimap and are not treated as water by movement or vehicles.
@@ -723,11 +738,24 @@ function drawMinimap(){
  for(const b of buildingColliders)ctx.fillRect(mapX(b.minX),mapZ(b.minZ),(b.maxX-b.minX)*scale,(b.maxZ-b.minZ)*scale);
  // park
  ctx.fillStyle='#789d61';ctx.fillRect(mapX(-170),mapZ(60),80*scale,42*scale);
- // vehicle markers
- for(const car of cars){const x=mapX(car.group.position.x),z=mapZ(car.group.position.z);ctx.fillStyle=car===inCar?'#fff2a6':car.aircraft?'#8ee7f0':'#e5a05d';ctx.fillRect(x-3,z-3,6,6)}
+ // Emergency-service locations use high-contrast symbols at the actual buildings.
+ const facilities=[{x:-131,z:-13.5,color:'#58a9ff',symbol:'P'},{x:33.5,z:110,color:'#ff6258',symbol:'F'},{x:-75,z:47,color:'#ffffff',symbol:'+'}];
+ const iconSize=Math.max(5,Math.min(zoom*5,zoom>1?15:8));
+ for(const f of facilities){const fx=mapX(f.x),fz=mapZ(f.z);ctx.beginPath();ctx.arc(fx,fz,iconSize,0,Math.PI*2);ctx.fillStyle='#07131ddd';ctx.fill();ctx.lineWidth=Math.max(1,zoom*1.4);ctx.strokeStyle=f.color;ctx.stroke();ctx.fillStyle=f.color;ctx.font='bold '+Math.max(8,iconSize*1.35)+'px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(f.symbol,fx,fz+.5);if(zoom>1.25){ctx.font='bold 12px Arial';ctx.textAlign='left';ctx.fillText(f.symbol==='P'?'POLICE':f.symbol==='F'?'FIRE':'HOSPITAL',fx+iconSize+4,fz)}}
+ // Vehicle markers.
+ for(const car of cars){if(!car.group.visible)continue;const x=mapX(car.group.position.x),z=mapZ(car.group.position.z);ctx.fillStyle=car===inCar?'#fff2a6':car.aircraft?'#8ee7f0':'#e5a05d';ctx.fillRect(x-3,z-3,6,6)}
  const p=inCar?inCar.group.position:player.position,x=mapX(p.x),z=mapZ(p.z);
  ctx.save();ctx.translate(x,z);ctx.rotate(inCar?Math.PI-inCar.angle:-yaw);ctx.fillStyle='#ffffff';ctx.strokeStyle='#10212b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(6,7);ctx.lineTo(0,4);ctx.lineTo(-6,7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
 }
+function drawMinimap(){drawMapCanvas($('mapCanvas'),1,0,0)}
+$('mapZoomIn').addEventListener('click',()=>{bigMapZoom=Math.min(5,bigMapZoom*1.25);drawBigMap()});
+$('mapZoomOut').addEventListener('click',()=>{bigMapZoom=Math.max(.7,bigMapZoom/1.25);drawBigMap()});
+$('mapRecenter').addEventListener('click',()=>{const p=inCar?inCar.group.position:player.position;bigMapCenter={x:p.x,z:p.z};drawBigMap()});
+$('mapClose').addEventListener('click',()=>toggleBigMap(false));
+$('bigMapCanvas').addEventListener('wheel',e=>{e.preventDefault();bigMapZoom=Math.max(.7,Math.min(5,bigMapZoom*(e.deltaY<0?1.15:.87)));drawBigMap()},{passive:false});
+$('bigMapCanvas').addEventListener('pointerdown',e=>{mapDrag={x:e.clientX,y:e.clientY,cx:bigMapCenter.x,cz:bigMapCenter.z};$('bigMapCanvas').classList.add('dragging');$('bigMapCanvas').setPointerCapture(e.pointerId)});
+$('bigMapCanvas').addEventListener('pointermove',e=>{if(!mapDrag)return;const rect=$('bigMapCanvas').getBoundingClientRect(),units=900/bigMapZoom/rect.width;bigMapCenter.x=mapDrag.cx-(e.clientX-mapDrag.x)*units;bigMapCenter.z=mapDrag.cz-(e.clientY-mapDrag.y)*units;drawBigMap()});
+$('bigMapCanvas').addEventListener('pointerup',()=>{mapDrag=null;$('bigMapCanvas').classList.remove('dragging')});
 let mapTimer=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);update(dt);mapTimer+=dt;if(mapTimer>.12){drawMinimap();mapTimer=0}renderer.render(scene,camera)}animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
