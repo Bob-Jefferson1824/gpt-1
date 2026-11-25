@@ -44,11 +44,11 @@
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
- <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicles & aircraft<br><b>Plane:</b> W accelerate &nbsp; S brake &nbsp; A/D steer<br><b>SPACE</b> pitch up (needs speed) &nbsp; <b>SHIFT</b> pitch down<br><b>Helicopter:</b> W/S throttle &nbsp; SPACE/SHIFT altitude<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>M</b> Full map &nbsp; <b>ESC</b> Release mouse</div>
+ <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicles & aircraft<br><b>Plane:</b> W accelerate &nbsp; S brake &nbsp; A/D steer<br><b>SPACE</b> pitch up (needs speed) &nbsp; <b>SHIFT</b> pitch down<br><b>Helicopter:</b> W/S throttle &nbsp; SPACE/SHIFT altitude<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>M</b> Full map &nbsp; <b>Stars 2+</b> Roadblocks &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
 <div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>▲ You</span></div></div></div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 038 adds a zoomable city map and emergency-service map markers.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 039 adds police air support, SWAT and military response units, roadblocks and a zoomable city map.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -452,6 +452,39 @@ function makePoliceOfficer(x,z){const g=new THREE.Group(),parts=makeHumanoid(g,m
 for(let i=0;i<8;i++){const seg=roadSegments[(i*3+1)%roadSegments.length];const x=seg.orientation==='v'?seg.x+5:seg.x+(rand()-.5)*Math.max(4,seg.w*.35);const z=seg.orientation==='v'?seg.z+(rand()-.5)*Math.max(4,seg.d*.45):seg.z+5;makePoliceOfficer(x,z)}
 function makePoliceCar(x,z,angle,index,type='sedan'){const c=makeCar(x,z,0xe5e8eb,angle,false,null,type);c.police=true;c.policeIndex=index;c.cruise=0;c.speed=0;c.ai=true;box(1.1,.12,.42,mat(0x202b36),0,2.05,0,c.group);const red=box(.42,.16,.34,mat(0xe13b43,.25,.2),-.3,2.17,0,c.group);const blue=box(.42,.16,.34,mat(0x347de0,.25,.2),.3,2.17,0,c.group);c.sirenParts=[red,blue];c.group.userData.sirenTime=0;policeCars.push(c);return c;}
 for(let i=0;i<8;i++){const seg=roadSegments[(i*5+2)%roadSegments.length];const x=seg.orientation==='v'?seg.x+(i%2?2.3:-2.3):seg.x+(rand()-.5)*(seg.w*.35);const z=seg.orientation==='v'?seg.z+(rand()-.5)*(seg.d*.35):seg.z+(i%2?2.3:-2.3);const angle=seg.orientation==='v'?(i%2?Math.PI:0):(i%2?Math.PI/2:-Math.PI/2);makePoliceCar(x,z,angle,i,i%3===0?'suv':'sedan');}
+ // Higher wanted levels bring in clearly marked, non-combat response vehicles.
+ function makeSpecialResponse(kind,index,x,z){
+  const c=makePoliceCar(x,z,0,index,'suv');c.responseKind=kind;c.policeIndex=index;c.group.visible=false;
+  const tint=kind==='SWAT'?mat(0x17212b):mat(0x53634a);
+  box(1.35,.18,1.1,tint,0,2.22,-.1,c.group);
+  const label=document.createElement('canvas');label.width=256;label.height=64;const lctx=label.getContext('2d');lctx.fillStyle=kind==='SWAT'?'#17212b':'#53634a';lctx.fillRect(0,0,256,64);lctx.fillStyle='#ffffff';lctx.font='bold 38px Arial';lctx.textAlign='center';lctx.textBaseline='middle';lctx.fillText(kind,128,34);
+  const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.4,.6),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(label)}));sign.position.set(0,2.55,-.2);c.group.add(sign);return c;
+ }
+ const swatUnits=[makeSpecialResponse('SWAT',4,-30,42),makeSpecialResponse('SWAT',4,65,42)];
+ const militaryUnits=[makeSpecialResponse('ARMY',5,-105,42),makeSpecialResponse('ARMY',5,125,42)];
+ // A simple animated police helicopter appears from four stars upward.
+ const policeHeli=new THREE.Group();scene.add(policeHeli);
+ const heliBody=mat(0x263b4b),heliGlass=mat(0x8fc7d8,.35,.2),heliRotor=mat(0x18232a);
+ box(2.2,.85,3.4,heliBody,0,0,0,policeHeli);box(1.55,.68,1.35,heliGlass,0,.12,-1.15,policeHeli);
+ box(.32,.28,5.5,heliBody,0,.15,3.65,policeHeli);box(.3,.22,1.2,heliBody,0,.1,6.3,policeHeli);
+ const heliBlade=box(.12,.08,12,heliRotor,0,.68,0,policeHeli);
+ const tailBlade=box(2.2,.08,.12,heliRotor,0,.18,6.25,policeHeli);
+ policeHeli.visible=false;
+ // Stylised roadblock props use reflective marker lamps.
+ const roadblocks=[];
+ function makeRoadblock(seg,offset){
+  const g=new THREE.Group(),vertical=seg.orientation==='v';
+  box(vertical?seg.w*.9:1,.95,vertical?1:seg.w*.9,mat(0xe8e8df),0,0,0,g);
+  for(let k=-2;k<=2;k++)box(vertical?1.35:.18,.97,vertical?.18:1.35,mat(k%2?0x26333a:0xe34c3f),vertical?k*2.1:0,.02,vertical?0:k*2.1,g);
+  for(let k=-1;k<=1;k++)box(.28,.3,.28,mat(0xffd56a),vertical?k*3.4:0,.65,vertical?0:k*3.4,g);
+  g.position.set(seg.x,.15,seg.z+offset);g.visible=false;scene.add(g);roadblocks.push(g);
+ }
+ const mainVertical=roadSegments.filter(v=>v.orientation==='v').sort((a,b)=>a.x-b.x);
+ const mainHorizontal=roadSegments.filter(v=>v.orientation==='h').sort((a,b)=>a.z-b.z);
+ if(mainVertical.length)makeRoadblock(mainVertical[Math.floor(mainVertical.length/2)],-35);
+ if(mainVertical.length>2)makeRoadblock(mainVertical[1],85);
+ if(mainHorizontal.length>2)makeRoadblock(mainHorizontal[Math.floor(mainHorizontal.length/2)],-70);
+
 for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const parts=makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,terrainHeight(x,z),z);scene.add(g);people.push({g,parts,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));const officer=policeOfficers.filter(o=>!o.down&&o.g.visible).map(o=>({o,d:o.g.position.distanceTo(player.position)})).filter(v=>v.d<3.2&&v.o.g.position.clone().sub(player.position).setY(0).normalize().dot(forward)>.15).sort((a,b)=>a.d-b.d)[0]?.o;if(officer){raiseWanted(.35,'Officer attacked');officer.health--;const away=officer.g.position.clone().sub(player.position);away.y=0;away.normalize();officer.g.position.addScaledVector(away,1.15);arcadeBurst(officer.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(officer.health<=0){officer.down=true;officer.respawn=18;officer.knockTimer=1.1;officer.g.rotation.x=Math.PI/2;officer.g.position.y=.04;notice('Officer temporarily taken out')}return}let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;if(policeWitnessed(player.position))raiseWanted(.65,'Assault reported');target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c.destroyed||!c.group.visible||(c===myCar&&inCar))continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){
@@ -468,6 +501,9 @@ function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
  trafficClock+=dt;if($('bigMap').style.display==='flex'&&!mapDrag)drawBigMap();
+ const responseActive=wantedLevel>=2;for(const b of roadblocks)b.visible=responseActive;
+ policeHeli.visible=wantedLevel>=4;
+ if(policeHeli.visible){const target=inCar?inCar.group.position:player.position;const orbit=trafficClock*.22,hx=target.x+Math.cos(orbit)*34,hz=target.z+Math.sin(orbit)*34;policeHeli.position.x+=(hx-policeHeli.position.x)*Math.min(1,dt*.7);policeHeli.position.z+=(hz-policeHeli.position.z)*Math.min(1,dt*.7);policeHeli.position.y=target.y+24+Math.sin(trafficClock*1.7)*1.5;policeHeli.rotation.y=Math.atan2(target.x-policeHeli.position.x,target.z-policeHeli.position.z);heliBlade.rotation.y+=dt*22;tailBlade.rotation.x+=dt*18;}
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
  // Traffic follows its assigned lane, keeps a safe gap, yields to cross traffic,
  // slows at junctions, and accelerates smoothly instead of snapping to full speed.
@@ -476,7 +512,7 @@ function update(dt){
   if(impactSpeed>.04){c.group.position.x+=(c.impactVX||0)*dt;c.group.position.z+=(c.impactVZ||0)*dt;c.angle+=(c.impactSpin||0)*dt;c.group.rotation.y=c.angle;const drag=Math.pow(.91,dt*60);c.impactVX*=drag;c.impactVZ*=drag;c.impactSpin*=Math.pow(.86,dt*60);if(impactSpeed>1.25&&c.ai&&c!==inCar){applyCarTerrain(c);continue}else if(impactSpeed>1.25&&c===inCar){applyCarTerrain(c)}}
   if(c.crashed){c.speed=0;c.wreckTimer-=dt;c.smokeClock=(c.smokeClock||0)+dt;if(c.group.visible&&c.smokeClock>.13){c.smokeClock=0;const origin=c.group.position.clone().add(new THREE.Vector3(.15,1.15,1.15));for(let n=0;n<2;n++){const puff=new THREE.Mesh(new THREE.SphereGeometry(.2+rand()*.16,7,6),mat(rand()<.65?0x3b3d3d:0x666968,.82));puff.position.copy(origin);scene.add(puff);hitParticles.push({mesh:puff,vel:new THREE.Vector3((rand()-.5)*.7,.8+rand()*1.6,(rand()-.5)*.7),life:1.1+rand()*.8})}if(rand()<.42){const flame=new THREE.Mesh(new THREE.SphereGeometry(.2+rand()*.12,7,6),mat(0xff712b,.55));flame.position.copy(origin).add(new THREE.Vector3(0,-.35,0));scene.add(flame);hitParticles.push({mesh:flame,vel:new THREE.Vector3((rand()-.5)*.5,1+rand(),(rand()-.5)*.5),life:.3})}}if(c.wreckTimer<=0)c.group.visible=false;continue}
   if(c.sinking){c.sinkTime+=dt;c.group.position.y=Math.max(-2.8,c.group.position.y-dt*.34);continue}
-  if(c.police){const active=wantedLevel>c.policeIndex;if(active&&c!==inCar){const target=inCar?inCar.group.position:player.position;const dx=target.x-c.group.position.x,dz=target.z-c.group.position.z,dist=Math.hypot(dx,dz),desired=Math.atan2(dx,dz);let turn=((desired-c.angle+Math.PI*3)%(Math.PI*2))-Math.PI;c.angle+=Math.max(-2.1*dt,Math.min(2.1*dt,turn));c.group.rotation.y=c.angle;const desiredSpeed=dist>9?Math.min(18,7+dist*.08):Math.min(7,dist*.55);c.speed+=(desiredSpeed-c.speed)*Math.min(1,dt*1.8);const nx=c.group.position.x+Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z+Math.cos(c.angle)*c.speed*dt;if(!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz;applyCarTerrain(c)}}else{c.speed*=Math.pow(.8,dt)}c.group.userData.sirenTime=(c.group.userData.sirenTime||0)+dt;if(active){const flash=Math.floor(c.group.userData.sirenTime*5)%2;c.sirenParts[0].visible=!!flash;c.sirenParts[1].visible=!flash;}else{c.sirenParts[0].visible=false;c.sirenParts[1].visible=false;}continue}
+  if(c.police){const active=wantedLevel>c.policeIndex;if(c.responseKind)c.group.visible=active;if(active&&c!==inCar){const target=inCar?inCar.group.position:player.position;const dx=target.x-c.group.position.x,dz=target.z-c.group.position.z,dist=Math.hypot(dx,dz),desired=Math.atan2(dx,dz);let turn=((desired-c.angle+Math.PI*3)%(Math.PI*2))-Math.PI;c.angle+=Math.max(-2.1*dt,Math.min(2.1*dt,turn));c.group.rotation.y=c.angle;const desiredSpeed=dist>9?Math.min(18,7+dist*.08):Math.min(7,dist*.55);c.speed+=(desiredSpeed-c.speed)*Math.min(1,dt*1.8);const nx=c.group.position.x+Math.sin(c.angle)*c.speed*dt,nz=c.group.position.z+Math.cos(c.angle)*c.speed*dt;if(!carBlocked(c,nx,nz)){c.group.position.x=nx;c.group.position.z=nz;applyCarTerrain(c)}}else{c.speed*=Math.pow(.8,dt)}c.group.userData.sirenTime=(c.group.userData.sirenTime||0)+dt;if(active){const flash=Math.floor(c.group.userData.sirenTime*5)%2;c.sirenParts[0].visible=!!flash;c.sirenParts[1].visible=!flash;}else{c.sirenParts[0].visible=false;c.sirenParts[1].visible=false;}continue}
   if(c===inCar||!c.ai||!c.lane)continue;
   const lane=c.lane,vertical=lane.orientation==='v';
   const coord=vertical?c.group.position.z:c.group.position.x;
