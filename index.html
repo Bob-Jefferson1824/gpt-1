@@ -48,7 +48,7 @@
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
 <div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>▲ You</span></div></div></div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 040 fixes map zoom, adds solid police-car roadblocks and redesigns emergency response vehicles.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 041 improves roadblock coverage and adds a visible Army tank at six stars.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -480,8 +480,8 @@ for(let i=0;i<8;i++){const seg=roadSegments[(i*5+2)%roadSegments.length];const x
  function makeRoadblock(seg,offset){
   const vertical=seg.orientation==='v',crossAngle=vertical?0:Math.PI/2;
   const centerX=seg.x+(vertical?0:offset),centerZ=seg.z+(vertical?offset:0);
-  for(let lane=-1;lane<=1;lane++){
-   const x=centerX+(vertical?lane*4.1:0),z=centerZ+(vertical?0:lane*4.1);
+  for(let lane=-2;lane<=2;lane++){
+   const x=centerX+(vertical?lane*3.0:0),z=centerZ+(vertical?0:lane*3.0);
    const c=makePoliceCar(x,z,crossAngle,1,'suv');c.roadblock=true;c.policeIndex=1;c.speed=0;c.cruise=0;c.ai=false;c.driver=false;c.group.visible=false;roadblockCars.push(c);
   }
  }
@@ -490,6 +490,22 @@ for(let i=0;i<8;i++){const seg=roadSegments[(i*5+2)%roadSegments.length];const x
  if(mainVertical.length)makeRoadblock(mainVertical[Math.floor(mainVertical.length/2)],-35);
  if(mainVertical.length>2)makeRoadblock(mainVertical[1],85);
  if(mainHorizontal.length>2)makeRoadblock(mainHorizontal[Math.floor(mainHorizontal.length/2)],-70);
+ // Heavy Army presence: a stylised tank joins the six-star response.
+ const armyTank=new THREE.Group();scene.add(armyTank);
+ const tankOlive=mat(0x59664a,.72,.24),tankDark=mat(0x252d27,.85,.18),tankGlass=mat(0x263d3b,.4,.25);
+ box(3.5,.95,5.2,tankOlive,0,.95,0,armyTank);
+ for(const side of [-1,1]){
+  box(.48,.85,5.4,tankDark,side*1.85,.55,0,armyTank);
+  for(let wheel=-2;wheel<=2;wheel++){const roller=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.22,14),tankOlive);roller.rotation.z=Math.PI/2;roller.position.set(side*2.1,.52,wheel*.92);armyTank.add(roller)}
+ }
+ const turret=new THREE.Group();armyTank.add(turret);box(2.25,.7,2.35,tankOlive,0,1.72,-.15,turret);
+ const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.16,.2,3.4,12),tankDark);barrel.rotation.x=Math.PI/2;barrel.position.set(0,1.82,-2.55);turret.add(barrel);
+ box(.85,.42,.12,tankGlass,0,2.05,-.25,turret);
+ const armyMark=document.createElement('canvas');armyMark.width=256;armyMark.height=64;const am=armyMark.getContext('2d');am.fillStyle='#59664a';am.fillRect(0,0,256,64);am.fillStyle='#fff';am.font='bold 40px Arial';am.textAlign='center';am.textBaseline='middle';am.fillText('ARMY',128,34);
+ const armySign=new THREE.Mesh(new THREE.PlaneGeometry(2.2,.55),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(armyMark)}));armySign.position.set(0,2.15,1.2);armyTank.add(armySign);
+ armyTank.visible=false;
+ const tankRoad=mainVertical[Math.floor(mainVertical.length/2)];if(tankRoad)armyTank.position.set(tankRoad.x,terrainHeight(tankRoad.x,tankRoad.z-52)+.1,tankRoad.z-52);
+
 
 for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const parts=makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,terrainHeight(x,z),z);scene.add(g);people.push({g,parts,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));const officer=policeOfficers.filter(o=>!o.down&&o.g.visible).map(o=>({o,d:o.g.position.distanceTo(player.position)})).filter(v=>v.d<3.2&&v.o.g.position.clone().sub(player.position).setY(0).normalize().dot(forward)>.15).sort((a,b)=>a.d-b.d)[0]?.o;if(officer){raiseWanted(.35,'Officer attacked');officer.health--;const away=officer.g.position.clone().sub(player.position);away.y=0;away.normalize();officer.g.position.addScaledVector(away,1.15);arcadeBurst(officer.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(officer.health<=0){officer.down=true;officer.respawn=18;officer.knockTimer=1.1;officer.g.rotation.x=Math.PI/2;officer.g.position.y=.04;notice('Officer temporarily taken out')}return}let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;if(policeWitnessed(player.position))raiseWanted(.65,'Assault reported');target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c.destroyed||!c.group.visible||(c===myCar&&inCar))continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
@@ -507,7 +523,7 @@ function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
  trafficClock+=dt;if($('bigMap').style.display==='flex'&&!mapDrag)drawBigMap();
- const responseActive=wantedLevel>=2;
+ const responseActive=wantedLevel>=2;armyTank.visible=wantedLevel>=6;
  policeHeli.visible=wantedLevel>=4;
  if(policeHeli.visible){const target=inCar?inCar.group.position:player.position;const orbit=trafficClock*.22,hx=target.x+Math.cos(orbit)*34,hz=target.z+Math.sin(orbit)*34;policeHeli.position.x+=(hx-policeHeli.position.x)*Math.min(1,dt*.7);policeHeli.position.z+=(hz-policeHeli.position.z)*Math.min(1,dt*.7);policeHeli.position.y=target.y+24+Math.sin(trafficClock*1.7)*1.5;const vx=-Math.sin(orbit),vz=Math.cos(orbit);policeHeli.rotation.y=Math.atan2(-vx,-vz);heliBlade.rotation.y+=dt*22;tailBlade.rotation.x+=dt*18;}
  const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
@@ -725,7 +741,7 @@ function resolvePlayerBuildings(){
 function resolvePedestrianBuildings(n){const p=n.g.position,r=.78;for(let pass=0;pass<2;pass++){for(const b of buildingColliders){const qx=Math.max(b.minX,Math.min(p.x,b.maxX)),qz=Math.max(b.minZ,Math.min(p.z,b.maxZ));let dx=p.x-qx,dz=p.z-qz,d=Math.hypot(dx,dz);if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}}for(const t of treeColliders){let dx=p.x-t.x,dz=p.z-t.z,d=Math.hypot(dx,dz),min=r+t.r;if(d<min){if(d<.001){dx=1;d=1}p.x+=dx/d*(min-d);p.z+=dz/d*(min-d)}}}p.y=terrainHeight(p.x,p.z)}
 function carBlocked(car,x,z){
  if(circleHitsBuilding(x,z,1.65))return true;
- for(const other of cars){if(other===car||other.aircraft||other.destroyed)continue;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<Math.max(4.1,((car.length||4.2)+(other.length||4.2))*.48))return true}
+ for(const other of cars){if(other===car||other.aircraft||other.destroyed)continue;if(other.roadblock&&(wantedLevel<2||!other.group.visible))continue;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<Math.max(4.1,((car.length||4.2)+(other.length||4.2))*.48))return true}
  return false;
 }
 function arcadeExplosion(position,scale=1){for(let i=0;i<34;i++){const smoke=i%3===0,mesh=new THREE.Mesh(smoke?new THREE.SphereGeometry(.35,7,6):new THREE.BoxGeometry(.18,.18,.18),mat(smoke?0x555b5c:[0xff5a32,0xffb13b,0xffe18a][i%3],.72));mesh.position.copy(position);mesh.scale.setScalar(scale*(.7+rand()*1.6));scene.add(mesh);hitParticles.push({mesh,vel:new THREE.Vector3((rand()-.5)*10,2+rand()*10,(rand()-.5)*10),life:.7+rand()*.8})}}
