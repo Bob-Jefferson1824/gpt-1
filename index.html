@@ -74,7 +74,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 058</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 059</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div><div id="gameTime">TIME 08:00</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="cashHUD" style="position:absolute;right:24px;top:178px;z-index:8;background:#07131dcc;border:1px solid #ffffff26;border-radius:9px;padding:10px 14px;color:#8de0a2;font-size:21px;font-weight:700">$500</div>
@@ -416,6 +416,15 @@ const playerParts=makeHumanoid(player,shirt);const {torso,head,legL,legR,armL,ar
 let punchTime=0;
 const PLAYER_SPAWN=new THREE.Vector3(81.34,0,5.5);
 player.position.copy(PLAYER_SPAWN);
+// Fictional arcade pulse emitter and target-only practice range.
+const pulseEmitter=new THREE.Group();player.add(pulseEmitter);pulseEmitter.position.set(.48,1.22,.34);pulseEmitter.visible=false;
+const emitterCore=new THREE.Mesh(new THREE.BoxGeometry(.22,.2,.62),mat(0x243746,.38,.55));emitterCore.position.z=.18;pulseEmitter.add(emitterCore);
+const emitterGlow=new THREE.Mesh(new THREE.SphereGeometry(.13,12,10),new THREE.MeshStandardMaterial({color:0x56dfff,emissive:0x18b9ff,emissiveIntensity:2}));emitterGlow.position.set(0,.03,-.18);pulseEmitter.add(emitterGlow);
+const practiceTargets=[];const targetMat=new THREE.MeshStandardMaterial({color:0xffc64d,emissive:0x7b3e08,emissiveIntensity:.45,metalness:.35,roughness:.35});
+for(let i=0;i<5;i++){const g=new THREE.Group(),x=PLAYER_SPAWN.x+(i-2)*2.7,z=PLAYER_SPAWN.z-27;const base=new THREE.Mesh(new THREE.CylinderGeometry(.16,.22,.55,10),mat(0x435766,.55,.45));base.position.y=.28;g.add(base);const target=new THREE.Mesh(new THREE.SphereGeometry(.62,16,12),targetMat.clone());target.position.y=1.35;g.add(target);const ring=new THREE.Mesh(new THREE.TorusGeometry(.78,.07,8,24),new THREE.MeshStandardMaterial({color:0x5cddf5,emissive:0x167d9a,emissiveIntensity:.8}));ring.position.y=1.35;g.add(ring);g.position.set(x,terrainHeight(x,z),z);scene.add(g);practiceTargets.push({group:g,mesh:target,respawn:0});}
+let pulseCooldown=0,pulseScore=0;const pulseBeams=[];
+function firePulse(){if(!pulseEmitter.visible||pulseCooldown>0||inCar||swimming)return;pulseCooldown=.28;const origin=player.position.clone().add(new THREE.Vector3(0,1.5,0));const direction=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)).normalize();const ray=new THREE.Raycaster(origin,direction,0,65);const hits=ray.intersectObjects(practiceTargets.filter(t=>t.mesh.visible).map(t=>t.mesh),false);const end=hits.length?hits[0].point:origin.clone().addScaledVector(direction,65);const geometry=new THREE.BufferGeometry().setFromPoints([origin,end]);const beam=new THREE.Line(geometry,new THREE.LineBasicMaterial({color:0x65eaff,transparent:true,opacity:.95}));scene.add(beam);pulseBeams.push({mesh:beam,life:.11});if(hits.length){const target=practiceTargets.find(t=>t.mesh===hits[0].object);if(target){target.mesh.visible=false;target.respawn=2.2;pulseScore++;notice('TARGET HIT • SCORE '+pulseScore);}}else notice('PULSE MISSED • AIM AT THE PRACTICE TARGETS');}
+
 let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0,cameraMode=0;
 let health=100,stamina=100,drownTimer=0,deadTimer=0;
 let garageNoticeCooldown=0,adminFlight=false;
@@ -432,7 +441,7 @@ function cashDrop(position){
 }
 setCash(cash);
 
-const keys={};addEventListener('keydown',e=>{if(e.code==='KeyM'&&!e.repeat){toggleBigMap();e.preventDefault();return}if(e.code==='Escape'&&$('bigMap').style.display==='flex'){toggleBigMap(false);return}keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='KeyF')punch();if(e.code==='KeyV'){cameraMode=(cameraMode+1)%3;notice(['Third-person camera','First-person camera','Cinematic camera'][cameraMode]);}if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
+const keys={};addEventListener('keydown',e=>{if(e.code==='KeyM'&&!e.repeat){toggleBigMap();e.preventDefault();return}if(e.code==='Escape'&&$('bigMap').style.display==='flex'){toggleBigMap(false);return}keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='KeyF')punch();if(e.code==='KeyG'&&!e.repeat){pulseEmitter.visible=!pulseEmitter.visible;notice(pulseEmitter.visible?'PULSE EMITTER EQUIPPED • CLICK TO HIT PRACTICE TARGETS':'PULSE EMITTER STORED');}if(e.code==='KeyV'){cameraMode=(cameraMode+1)%3;notice(['Third-person camera','First-person camera','Cinematic camera'][cameraMode]);}if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
 addEventListener('keyup',e=>keys[e.code]=false);
 function requestMouseLock(){
  if($('start').style.display!=='none'||locked)return;
@@ -444,7 +453,7 @@ document.addEventListener('pointerlockerror',()=>{$('lockHint').style.display='b
 // A single click captures the pointer; after that mouse movement continuously turns the view.
 // No click-and-drag handler is used.
 document.addEventListener('click',e=>{if($('bigMap').style.display==='flex'||e.target.closest('#bigMap')||e.target.closest('#adminPanel')||e.target.closest('#adminAccess'))return;if($('start').style.display==='none'&&!locked)requestMouseLock()});
-document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});document.addEventListener('mousedown',e=>{if(e.button===0&&$('start').style.display==='none'&&$('bigMap').style.display!=='flex'&&!e.target.closest('#adminPanel')&&!e.target.closest('#adminAccess'))punch()});
+document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});document.addEventListener('mousedown',e=>{if(e.button===0&&$('start').style.display==='none'&&$('bigMap').style.display!=='flex'&&!e.target.closest('#adminPanel')&&!e.target.closest('#adminAccess')){if(pulseEmitter.visible)firePulse();else punch()}});
 let introPage=0;function showIntroPage(n){introPage=Math.max(0,Math.min(2,n));document.querySelectorAll('.introPage').forEach((p,i)=>p.classList.toggle('active',i===introPage));document.querySelectorAll('.progressDot').forEach((p,i)=>p.classList.toggle('active',i===introPage));}
 $('introNext1').onclick=()=>showIntroPage(1);$('introBack2').onclick=()=>showIntroPage(0);$('introNext2').onclick=()=>showIntroPage(2);$('introBack3').onclick=()=>showIntroPage(1);
 $('play').onclick=()=>{$('start').style.display='none';requestMouseLock()};
@@ -646,7 +655,7 @@ function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
- trafficClock+=dt;if(!timeOverride)dayClock=(dayClock+dt)%DAY_LENGTH;
+ trafficClock+=dt;pulseCooldown=Math.max(0,pulseCooldown-dt);for(let i=pulseBeams.length-1;i>=0;i--){const b=pulseBeams[i];b.life-=dt;b.mesh.material.opacity=Math.max(0,b.life/.11);if(b.life<=0){scene.remove(b.mesh);b.mesh.geometry.dispose();b.mesh.material.dispose();pulseBeams.splice(i,1);}}for(const t of practiceTargets){if(t.respawn>0){t.respawn-=dt;if(t.respawn<=0)t.mesh.visible=true;}}if(!timeOverride)dayClock=(dayClock+dt)%DAY_LENGTH;
  const gameMinutes=Math.floor((dayClock/DAY_LENGTH)*24*60);$('gameTime').textContent='TIME '+String(Math.floor(gameMinutes/60)).padStart(2,'0')+':'+String(gameMinutes%60).padStart(2,'0');const sunAngle=(dayClock/DAY_LENGTH)*Math.PI*2-Math.PI*.5;const daylight=Math.max(0,Math.sin(sunAngle));const night=1-daylight;
  const lightTarget=inCar?inCar.group.position:player.position;
  const nearbyHeadlightCars=cars.filter(c=>c!==inCar&&!c.destroyed&&!c.crashed&&c.group.visible).map(c=>({car:c,d:c.group.position.distanceTo(lightTarget)})).filter(v=>v.d<95).sort((a,b)=>a.d-b.d).slice(0,8);
