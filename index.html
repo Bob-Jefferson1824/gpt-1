@@ -74,7 +74,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 059</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 060</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div><div id="gameTime">TIME 08:00</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="cashHUD" style="position:absolute;right:24px;top:178px;z-index:8;background:#07131dcc;border:1px solid #ffffff26;border-radius:9px;padding:10px 14px;color:#8de0a2;font-size:21px;font-weight:700">$500</div>
@@ -994,7 +994,7 @@ $('timeMorning').addEventListener('click',()=>{dayClock=300;timeOverride=true;no
 $('adminMilitary').addEventListener('click',()=>adminSpawn('ARMY',$('adminMilitaryVehicle').checked));
 $('adminFlight').addEventListener('click',()=>{adminFlight=!adminFlight;$('adminFlight').textContent=adminFlight?'DISABLE FLIGHT':'ENABLE FLIGHT';if(adminFlight){velocityY=0;notice('Flight enabled • SPACE up / SHIFT down')}else{player.position.y=terrainHeight(player.position.x,player.position.z);velocityY=0;notice('Flight disabled')}});
 
-let introCaptured=false;function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);update(dt);mapTimer+=dt;if(mapTimer>.45){drawMinimap();mapTimer=0}renderer.render(scene,camera);if(!introCaptured){try{$('introShot').src=renderer.domElement.toDataURL('image/jpeg',.86);introCaptured=true}catch(_){$('introShot').alt='Seabright City preview unavailable'}}}animate();
+let introCaptured=false;function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);update(dt);mapTimer+=dt;if(mapTimer>.45){drawMinimap();mapTimer=0}if(!introCaptured){try{const savedPosition=camera.position.clone(),savedQuaternion=camera.quaternion.clone(),savedUp=camera.up.clone(),savedFov=camera.fov,savedAspect=camera.aspect;const frame=$('introShot').parentElement;camera.aspect=frame.clientWidth/Math.max(1,frame.clientHeight);camera.fov=48;camera.position.set(0,560,170);camera.up.set(0,1,0);camera.lookAt(0,0,35);camera.updateProjectionMatrix();renderer.render(scene,camera);$('introShot').src=renderer.domElement.toDataURL('image/jpeg',.94);camera.position.copy(savedPosition);camera.quaternion.copy(savedQuaternion);camera.up.copy(savedUp);camera.fov=savedFov;camera.aspect=savedAspect;camera.updateProjectionMatrix();introCaptured=true}catch(_){$('introShot').alt='Seabright City aerial preview unavailable'}}renderer.render(scene,camera)}animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 })();
 </script>
