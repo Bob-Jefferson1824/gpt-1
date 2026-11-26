@@ -50,7 +50,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 052</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 053</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div><div id="gameTime">TIME 08:00</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="cashHUD" style="position:absolute;right:24px;top:178px;z-index:8;background:#07131dcc;border:1px solid #ffffff26;border-radius:9px;padding:10px 14px;color:#8de0a2;font-size:21px;font-weight:700">$500</div>
@@ -70,7 +70,7 @@
  </div>
 </div></div>
 <div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>🛠 Garage</span><span>▲ You</span></div></div></div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 050 adds functional vehicle headlights, tail lights and streetlamp glow.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 053 adds citywide streetlights and fixes walking direction.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -354,7 +354,7 @@ box(.3,2.8,.3,fencePost,265,1.4,245);box(.3,2.8,.3,fencePost,290,1.4,245);
 // Street lights
 const pole=mat(0x303b40),lamp=mat(0xffe4a6,.4);
 const verticalStreets=roadSegments.filter(v=>v.orientation==='v'),horizontalStreets=roadSegments.filter(v=>v.orientation==='h');
-for(const v of verticalStreets)for(const h of horizontalStreets){if(rand()>.48)continue;const x=v.x+v.w/2+3,z=h.z+h.w/2+3;if(Math.abs(x)>218||z< -108||z>192||terrainHeight(x,z)>2.2)continue;const g=new THREE.Group();g.position.set(x,terrainHeight(x,z),z);scene.add(g);box(.18,5.7,.18,pole,0,2.85,0,g);box(1.65,.14,.14,pole,.82,5.55,0,g);box(.65,.14,.55,lamp,1.62,5.48,0,g);const glow=new THREE.PointLight(0xffd99a,0,24,1.5);glow.position.set(1.62,5.25,0);g.add(glow);nightLights.push(glow);const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),new THREE.MeshBasicMaterial({color:0xffdf9b}));bulb.position.set(1.62,5.4,0);g.add(bulb);lightPoleColliders.push({x,z,group:g,fallen:false})}
+for(const v of verticalStreets)for(const h of horizontalStreets){const x=v.x+v.w/2+3,z=h.z+h.w/2+3;if(Math.abs(x)>218||z< -108||z>192||terrainHeight(x,z)>2.2)continue;const g=new THREE.Group();g.position.set(x,terrainHeight(x,z),z);scene.add(g);box(.18,5.7,.18,pole,0,2.85,0,g);box(1.65,.14,.14,pole,.82,5.55,0,g);box(.65,.14,.55,lamp,1.62,5.48,0,g);const glow=new THREE.PointLight(0xffd99a,0,32,1.35);glow.position.set(1.62,5.25,0);g.add(glow);nightLights.push(glow);const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),new THREE.MeshBasicMaterial({color:0xffdf9b}));bulb.position.set(1.62,5.4,0);g.add(bulb);lightPoleColliders.push({x,z,group:g,fallen:false})}
 // Park plaza and waterfront promenade
 box(80,.25,42,mat(0xc5bda7),-130,.05,80);for(let i=0;i<12;i++)tree(-165+(i%6)*13,64+Math.floor(i/6)*30,.65);
 // Waterfront kept clear: marina dock and pier removed.
@@ -616,7 +616,7 @@ function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
- trafficClock+=dt;if(!timeOverride)dayClock=(dayClock+dt)%DAY_LENGTH;const gameMinutes=Math.floor((dayClock/DAY_LENGTH)*24*60);$('gameTime').textContent='TIME '+String(Math.floor(gameMinutes/60)).padStart(2,'0')+':'+String(gameMinutes%60).padStart(2,'0');const sunAngle=(dayClock/DAY_LENGTH)*Math.PI*2-Math.PI*.5;const daylight=Math.max(0,Math.sin(sunAngle));const night=1-daylight;sun.position.set(Math.cos(sunAngle)*150,Math.max(-25,Math.sin(sunAngle)*190),Math.sin(sunAngle)*100);sun.intensity=.12+daylight*2.35;ambientSky.intensity=.28+daylight*1.55;ambientSky.color.copy(new THREE.Color(0x789acb).lerp(new THREE.Color(0xd9f4ff),daylight));scene.background.copy(nightColor.clone().lerp(dayColor,daylight));scene.fog.color.copy(scene.background);scene.fog.near=daylight>0.15?130:85;scene.fog.far=daylight>0.15?680:470;renderer.toneMappingExposure=.72+daylight*.42;for(const light of nightLights)light.intensity=night*5.5;for(const car of cars){if(car.beams){car.beams.forEach(b=>b.intensity=night*2.8);car.headMat.emissiveIntensity=night*1.35;car.tailMat.emissiveIntensity=night*1.05;}}if(window.__oceanMaterial?.userData.shader)window.__oceanMaterial.userData.shader.uniforms.oceanTime={value:trafficClock};garageNoticeCooldown=Math.max(0,garageNoticeCooldown-dt);
+ trafficClock+=dt;if(!timeOverride)dayClock=(dayClock+dt)%DAY_LENGTH;const gameMinutes=Math.floor((dayClock/DAY_LENGTH)*24*60);$('gameTime').textContent='TIME '+String(Math.floor(gameMinutes/60)).padStart(2,'0')+':'+String(gameMinutes%60).padStart(2,'0');const sunAngle=(dayClock/DAY_LENGTH)*Math.PI*2-Math.PI*.5;const daylight=Math.max(0,Math.sin(sunAngle));const night=1-daylight;sun.position.set(Math.cos(sunAngle)*150,Math.max(-25,Math.sin(sunAngle)*190),Math.sin(sunAngle)*100);sun.intensity=.12+daylight*2.35;ambientSky.intensity=.28+daylight*1.55;ambientSky.color.copy(new THREE.Color(0x789acb).lerp(new THREE.Color(0xd9f4ff),daylight));scene.background.copy(nightColor.clone().lerp(dayColor,daylight));scene.fog.color.copy(scene.background);scene.fog.near=daylight>0.15?130:85;scene.fog.far=daylight>0.15?680:470;renderer.toneMappingExposure=.72+daylight*.42;for(const light of nightLights)light.intensity=night*7.0;for(const car of cars){if(car.beams){car.beams.forEach(b=>b.intensity=night*2.8);car.headMat.emissiveIntensity=night*1.35;car.tailMat.emissiveIntensity=night*1.05;}}if(window.__oceanMaterial?.userData.shader)window.__oceanMaterial.userData.shader.uniforms.oceanTime={value:trafficClock};garageNoticeCooldown=Math.max(0,garageNoticeCooldown-dt);
  if(inCar&&!inCar.aircraft&&inCar.group.position.x>GARAGE.minX&&inCar.group.position.x<GARAGE.maxX&&inCar.group.position.z>GARAGE.minZ&&inCar.group.position.z<GARAGE.maxZ&&Math.abs(inCar.speed||0)<2&&inCar.health<100){
   if(cash>=GARAGE.fee){setCash(cash-GARAGE.fee);inCar.health=100;inCar.destroyed=false;inCar.crashed=false;inCar.crashCooldown=0;notice('Vehicle repaired • -$'+GARAGE.fee)}
   else if(garageNoticeCooldown<=0){notice('Repairs cost $'+GARAGE.fee+' • Not enough cash');garageNoticeCooldown=2.5}
@@ -823,7 +823,7 @@ if($('bigMap').style.display==='flex'&&!mapDrag)drawBigMap();
   }
  }
  $('cameraMode').textContent='CAMERA · '+['THIRD PERSON','FIRST PERSON','CINEMATIC'][cameraMode];$('mode').textContent=inCar?inCar.name:'ON FOOT';
- if(!inCar)player.rotation.y=yaw;
+ if(!inCar)player.rotation.y=yaw+Math.PI;
  $('coords').textContent='X '+Math.round(target.x)+'  Z '+Math.round(target.z);
  $('location').textContent=cityName(target);
  const c=nearestCar();const prompt=inCar?'E  EXIT VEHICLE':c?'E  ENTER '+(c.aircraft?(c.kind==='plane'?'PLANE':'HELICOPTER'):'VEHICLE'):swimming?'SPACE  SWIM UP':'';
