@@ -50,7 +50,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 048</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 049</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="cashHUD" style="position:absolute;right:24px;top:178px;z-index:8;background:#07131dcc;border:1px solid #ffffff26;border-radius:9px;padding:10px 14px;color:#8de0a2;font-size:21px;font-weight:700">$500</div>
@@ -70,7 +70,7 @@
  </div>
 </div></div>
 <div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>🛠 Garage</span><span>▲ You</span></div></div></div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 048 upgrades the ocean, lighting, vehicles, people and city detail.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 049 refines the environment overhaul shader and lighting.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -144,7 +144,7 @@ const oceanGeo=new THREE.BufferGeometry(),oceanNX=100,oceanNZ=42,oceanPositions=
  }
  oceanGeo.setAttribute('position',new THREE.BufferAttribute(oceanPositions,3));oceanGeo.setIndex(indices);oceanGeo.computeVertexNormals();
  const oceanMat=new THREE.MeshStandardMaterial({color:0x126b88,roughness:.19,metalness:.22,side:THREE.DoubleSide});
- oceanMat.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float oceanTime; varying vec3 oceanWorld;').replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.y += sin(position.x*0.035 + oceanTime*1.25)*0.22 + cos(position.z*0.052 - oceanTime*0.9)*0.13 + sin((position.x+position.z)*0.018+oceanTime*.65)*0.16;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\noceanWorld = worldPosition.xyz;').replace('#include <fragment_common>','#include <fragment_common>\nvarying vec3 oceanWorld;');oceanMat.userData.shader=shader};
+ oceanMat.onBeforeCompile=shader=>{shader.uniforms.oceanTime={value:0};shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float oceanTime; varying vec3 oceanWorld;').replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.y += sin(position.x*0.035 + oceanTime*1.25)*0.22 + cos(position.z*0.052 - oceanTime*0.9)*0.13 + sin((position.x+position.z)*0.018+oceanTime*.65)*0.16;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\noceanWorld = worldPosition.xyz;').replace('#include <fragment_common>','#include <fragment_common>\nvarying vec3 oceanWorld;');oceanMat.userData.shader=shader};
  const ocean=new THREE.Mesh(oceanGeo,oceanMat);ocean.frustumCulled=false;ocean.receiveShadow=true;scene.add(ocean);window.__oceanMaterial=oceanMat;
 }
 {
