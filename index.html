@@ -40,7 +40,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 042</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 043</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
@@ -48,7 +48,7 @@
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
 </div>
 <div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>▲ You</span></div></div></div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 042 fixes the map shoreline, roadblocks, helicopter direction and Army response.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 043 improves map mouse controls and makes vehicle collision bounds less oversized.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -346,8 +346,8 @@ document.addEventListener('pointerlockchange',()=>{locked=document.pointerLockEl
 document.addEventListener('pointerlockerror',()=>{$('lockHint').style.display='block';notice('Mouse capture was blocked by the browser')});
 // A single click captures the pointer; after that mouse movement continuously turns the view.
 // No click-and-drag handler is used.
-document.addEventListener('click',()=>{if($('start').style.display==='none'&&!locked)requestMouseLock()});
-document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});document.addEventListener('mousedown',e=>{if(e.button===0&&$('start').style.display==='none')punch()});
+document.addEventListener('click',e=>{if($('bigMap').style.display==='flex'||e.target.closest('#bigMap'))return;if($('start').style.display==='none'&&!locked)requestMouseLock()});
+document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});document.addEventListener('mousedown',e=>{if(e.button===0&&$('start').style.display==='none'&&$('bigMap').style.display!=='flex')punch()});
 $('play').onclick=()=>{$('start').style.display='none'};
 const cars=[];const ejectedDrivers=[];const carColors=[0xb83d36,0x315c83,0xd5d1c4,0x313b43,0xc18b35,0x47755d];
 function makeHumanoid(g,shirtMaterial,pose='standing'){
@@ -743,12 +743,12 @@ function resolvePlayerBuildings(){
   if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}
  }
  for(const t of treeColliders){let dx=p.x-t.x,dz=p.z-t.z,d=Math.hypot(dx,dz),min=r+t.r;if(d<min){if(d<.001){dx=1;d=1}p.x+=dx/d*(min-d);p.z+=dz/d*(min-d)}}
- for(const car of cars){if(car===inCar)continue;const dx=p.x-car.group.position.x,dz=p.z-car.group.position.z,d=Math.hypot(dx,dz),min=1.7;if(d<min){const safe=Math.max(d,.001);p.x+=dx/safe*(min-d);p.z+=dz/safe*(min-d)}}
+ for(const car of cars){if(car===inCar)continue;const dx=p.x-car.group.position.x,dz=p.z-car.group.position.z,d=Math.hypot(dx,dz),min=1.4;if(d<min){const safe=Math.max(d,.001);p.x+=dx/safe*(min-d);p.z+=dz/safe*(min-d)}}
 }
 function resolvePedestrianBuildings(n){const p=n.g.position,r=.78;for(let pass=0;pass<2;pass++){for(const b of buildingColliders){const qx=Math.max(b.minX,Math.min(p.x,b.maxX)),qz=Math.max(b.minZ,Math.min(p.z,b.maxZ));let dx=p.x-qx,dz=p.z-qz,d=Math.hypot(dx,dz);if(d<r){if(d<.001){dx=1;dz=0;d=1}const push=(r-d)/d;p.x+=dx*push;p.z+=dz*push}}for(const t of treeColliders){let dx=p.x-t.x,dz=p.z-t.z,d=Math.hypot(dx,dz),min=r+t.r;if(d<min){if(d<.001){dx=1;d=1}p.x+=dx/d*(min-d);p.z+=dz/d*(min-d)}}}p.y=terrainHeight(p.x,p.z)}
 function carBlocked(car,x,z){
- if(circleHitsBuilding(x,z,1.65))return true;
- for(const other of cars){if(other===car||other.aircraft||other.destroyed)continue;if(other.roadblock&&(wantedLevel<2||!other.group.visible))continue;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<Math.max(4.1,((car.length||4.2)+(other.length||4.2))*.48))return true}
+ if(circleHitsBuilding(x,z,1.35))return true;
+ for(const other of cars){if(other===car||other.aircraft||other.destroyed)continue;if(other.roadblock&&(wantedLevel<2||!other.group.visible))continue;const clearance=(car.length||4.2)*.36+(other.length||4.2)*.36;if(Math.hypot(x-other.group.position.x,z-other.group.position.z)<Math.max(2.75,clearance))return true}
  return false;
 }
 function arcadeExplosion(position,scale=1){for(let i=0;i<34;i++){const smoke=i%3===0,mesh=new THREE.Mesh(smoke?new THREE.SphereGeometry(.35,7,6):new THREE.BoxGeometry(.18,.18,.18),mat(smoke?0x555b5c:[0xff5a32,0xffb13b,0xffe18a][i%3],.72));mesh.position.copy(position);mesh.scale.setScalar(scale*(.7+rand()*1.6));scene.add(mesh);hitParticles.push({mesh,vel:new THREE.Vector3((rand()-.5)*10,2+rand()*10,(rand()-.5)*10),life:.7+rand()*.8})}}
@@ -757,7 +757,7 @@ function crashCar(car,damage,position){if(!car||car.aircraft||car.crashed||car.c
 function handleVehicleImpact(car,nx,nz){const speed=Math.abs(car.speed);if(speed<3)return false;const treeHit=treeColliders.find(t=>!t.fallen&&Math.hypot(nx-t.x,nz-t.z)<t.r+1.8);if(treeHit){if(car===inCar&&policeWitnessed(car.group.position))raiseWanted(.3,'Property damage reported');if(speed>7)toppleObstacle(treeHit);crashCar(car,Math.max(5,Math.round(speed*1.7)),new THREE.Vector3(treeHit.x,terrainHeight(treeHit.x,treeHit.z),treeHit.z));return true}const poleHit=lightPoleColliders.find(p=>!p.fallen&&Math.hypot(nx-p.x,nz-p.z)<2.2);if(poleHit){if(car===inCar&&policeWitnessed(car.group.position))raiseWanted(.3,'Property damage reported');if(speed>6)toppleObstacle(poleHit);crashCar(car,Math.max(4,Math.round(speed*1.3)),new THREE.Vector3(poleHit.x,terrainHeight(poleHit.x,poleHit.z),poleHit.z));return true}const other=cars.find(o=>o!==car&&!o.aircraft&&!o.crashed&&o.group.visible&&Math.hypot(nx-o.group.position.x,nz-o.group.position.z)<5.6);if(other){if(car===inCar&&!other.police)raiseWanted(.4,'Vehicle collision reported');const dx=other.group.position.x-car.group.position.x,dz=other.group.position.z-car.group.position.z,dist=Math.max(.01,Math.hypot(dx,dz)),normalX=dx/dist,normalZ=dz/dist,impact=Math.max(3.5,Math.min(19,speed*.72)),sideSlip=(Math.sin(car.angle)*normalZ-Math.cos(car.angle)*normalX);other.impactVX=(other.impactVX||0)+normalX*impact;other.impactVZ=(other.impactVZ||0)+normalZ*impact;other.impactSpin=(other.impactSpin||0)+sideSlip*impact*.045;car.impactVX=(car.impactVX||0)-normalX*impact*.16;car.impactVZ=(car.impactVZ||0)-normalZ*impact*.16;car.impactSpin=(car.impactSpin||0)-sideSlip*impact*.012;const damage=Math.max(10,Math.round(speed*1.65));crashCar(car,damage,car.group.position.clone());if(other.ai){other.health=Math.max(0,(other.health??100)-Math.max(8,Math.round(speed*1.25)));other.speed*=.35;other.crashCooldown=.7;if(other.health<=0){other.crashed=true;other.wreckTimer=12;other.speed=0;notice('Traffic vehicle wrecked!')}arcadeBurst(other.group.position.clone().add(new THREE.Vector3(0,1,0)))}else crashCar(other,Math.max(10,Math.round(speed*1.1)),other.group.position.clone());return true}if(circleHitsBuilding(nx,nz,1.65)){crashCar(car,Math.max(3,Math.round(speed*.9)),car.group.position.clone());return true}return false;
 }
 let bigMapZoom=1,bigMapCenter={x:0,z:0},mapDrag=null;
-function toggleBigMap(force){const open=force===undefined?$('bigMap').style.display!=='flex':force;$('bigMap').style.display=open?'flex':'none';if(open){const p=inCar?inCar.group.position:player.position;bigMapCenter={x:p.x,z:p.z};bigMapZoom=1.15;drawBigMap();if(locked)document.exitPointerLock()}else if($('start').style.display==='none')requestMouseLock()}
+function toggleBigMap(force){const open=force===undefined?$('bigMap').style.display!=='flex':force;$('bigMap').style.display=open?'flex':'none';if(open){const p=inCar?inCar.group.position:player.position;bigMapCenter={x:p.x,z:p.z};bigMapZoom=1.15;drawBigMap();if(locked)document.exitPointerLock()}else if($('start').style.display==='none'){$('lockHint').style.display='none';requestMouseLock()}}
 function drawBigMap(){drawMapCanvas($('bigMapCanvas'),bigMapZoom,bigMapCenter.x,bigMapCenter.z)}
 function drawMapCanvas(c,zoom=1,centerX=0,centerZ=0){
  const ctx=c.getContext('2d'),W=c.width,H=c.height,view=900/zoom,scale=W/view,mapX=x=>(x-centerX+view/2)*scale,mapZ=z=>(z-centerZ+view/2)*scale;
