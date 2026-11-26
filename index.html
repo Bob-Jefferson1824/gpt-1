@@ -50,7 +50,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 053</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 054</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div><div id="gameTime">TIME 08:00</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="cashHUD" style="position:absolute;right:24px;top:178px;z-index:8;background:#07131dcc;border:1px solid #ffffff26;border-radius:9px;padding:10px 14px;color:#8de0a2;font-size:21px;font-weight:700">$500</div>
@@ -70,7 +70,7 @@
  </div>
 </div></div>
 <div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>🛠 Garage</span><span>▲ You</span></div></div></div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 053 adds citywide streetlights and fixes walking direction.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 054 improves walking animation, road-facing streetlights, nearby headlights and night-time police visibility.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -144,7 +144,7 @@ const oceanGeo=new THREE.BufferGeometry(),oceanNX=100,oceanNZ=42,oceanPositions=
  }
  oceanGeo.setAttribute('position',new THREE.BufferAttribute(oceanPositions,3));oceanGeo.setIndex(indices);oceanGeo.computeVertexNormals();
  const oceanMat=new THREE.MeshStandardMaterial({color:0x126b88,roughness:.19,metalness:.22,side:THREE.DoubleSide});
- oceanMat.onBeforeCompile=shader=>{shader.uniforms.oceanTime={value:0};shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float oceanTime; varying vec3 oceanWorld;').replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.y += sin(position.x*0.035 + oceanTime*1.25)*0.22 + cos(position.z*0.052 - oceanTime*0.9)*0.13 + sin((position.x+position.z)*0.018+oceanTime*.65)*0.16;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\noceanWorld = worldPosition.xyz;').replace('#include <fragment_common>','#include <fragment_common>\nvarying vec3 oceanWorld;');oceanMat.userData.shader=shader};
+ oceanMat.userData.shader=null;
  const ocean=new THREE.Mesh(oceanGeo,oceanMat);ocean.frustumCulled=false;ocean.receiveShadow=true;scene.add(ocean);window.__oceanMaterial=oceanMat;
 }
 {
@@ -354,7 +354,7 @@ box(.3,2.8,.3,fencePost,265,1.4,245);box(.3,2.8,.3,fencePost,290,1.4,245);
 // Street lights
 const pole=mat(0x303b40),lamp=mat(0xffe4a6,.4);
 const verticalStreets=roadSegments.filter(v=>v.orientation==='v'),horizontalStreets=roadSegments.filter(v=>v.orientation==='h');
-for(const v of verticalStreets)for(const h of horizontalStreets){const x=v.x+v.w/2+3,z=h.z+h.w/2+3;if(Math.abs(x)>218||z< -108||z>192||terrainHeight(x,z)>2.2)continue;const g=new THREE.Group();g.position.set(x,terrainHeight(x,z),z);scene.add(g);box(.18,5.7,.18,pole,0,2.85,0,g);box(1.65,.14,.14,pole,.82,5.55,0,g);box(.65,.14,.55,lamp,1.62,5.48,0,g);const glow=new THREE.PointLight(0xffd99a,0,32,1.35);glow.position.set(1.62,5.25,0);g.add(glow);nightLights.push(glow);const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),new THREE.MeshBasicMaterial({color:0xffdf9b}));bulb.position.set(1.62,5.4,0);g.add(bulb);lightPoleColliders.push({x,z,group:g,fallen:false})}
+for(const v of verticalStreets)for(const h of horizontalStreets){const x=v.x+v.w/2+3,z=h.z+h.w/2+3;if(Math.abs(x)>218||z< -108||z>192||terrainHeight(x,z)>2.2)continue;const g=new THREE.Group();g.position.set(x,terrainHeight(x,z),z);scene.add(g);box(.18,5.7,.18,pole,0,2.85,0,g);box(1.65,.14,.14,pole,-.82,5.55,0,g);box(.65,.14,.55,lamp,-1.62,5.48,0,g);const glow=new THREE.PointLight(0xffd99a,0,32,1.35);glow.position.set(-1.62,5.25,0);g.add(glow);nightLights.push(glow);const bulb=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),new THREE.MeshBasicMaterial({color:0xffdf9b}));bulb.position.set(-1.62,5.4,0);g.add(bulb);lightPoleColliders.push({x,z,group:g,fallen:false})}
 // Park plaza and waterfront promenade
 box(80,.25,42,mat(0xc5bda7),-130,.05,80);for(let i=0;i<12;i++)tree(-165+(i%6)*13,64+Math.floor(i/6)*30,.65);
 // Waterfront kept clear: marina dock and pier removed.
@@ -536,7 +536,7 @@ makeAircraft('helicopter',420,405);
 const people=[];const shirts=[0x355b86,0x9a5944,0x4c795e,0xb39b58,0x725c8e].map(c=>mat(c));
 const policeOfficers=[],policeCars=[];let wantedLevel=0,wantedHeat=0,wantedQuiet=0;
 function raiseWanted(amount=.65,reason='Police alerted'){wantedHeat=Math.min(6,wantedHeat+amount);wantedLevel=Math.max(wantedLevel,Math.min(6,Math.floor(wantedHeat+.35)));wantedQuiet=0;if(wantedLevel>0)notice(reason+' • '+wantedLevel+' STAR'+(wantedLevel===1?'':'S'));else notice(reason+' • Police alerted');}function policeWitnessed(pos){return policeOfficers.some(o=>!o.down&&o.g.visible&&Math.hypot(pos.x-o.g.position.x,pos.z-o.g.position.z)<38)||policeCars.some(c=>c.group.visible&&!c.crashed&&Math.hypot(pos.x-c.group.position.x,pos.z-c.group.position.z)<42)}
-function makePoliceOfficer(x,z){const g=new THREE.Group(),parts=makeHumanoid(g,mat(0x172b43));box(.58,.16,.55,mat(0x101b2b),0,2.52,0,g);box(.12,.18,.035,mat(0xd6bd63,.35,.6),-.18,1.72,.25,g);g.position.set(x,terrainHeight(x,z),z);scene.add(g);policeOfficers.push({g,parts,health:3,down:false,respawn:0,knockTimer:0,attackCooldown:0,phase:rand()*8});}
+function makePoliceOfficer(x,z){const g=new THREE.Group(),parts=makeHumanoid(g,mat(0x10243d));const reflective=new THREE.MeshStandardMaterial({color:0x4bb8ef,emissive:0x12608e,emissiveIntensity:.35,metalness:.18,roughness:.38});const silver=new THREE.MeshStandardMaterial({color:0xe5edf0,emissive:0x647d89,emissiveIntensity:.22,roughness:.4});box(.58,.16,.55,mat(0x101b2b),0,2.52,0,g);box(.7,.12,.12,reflective,0,1.62,.34,g);box(.16,.28,.08,reflective,-.43,1.68,0,g);box(.16,.28,.08,reflective,.43,1.68,0,g);box(.12,.18,.035,silver,-.18,1.82,.37,g);box(.36,.12,.3,mat(0x1b3550),0,2.56,0,g);box(.3,.055,.26,reflective,0,2.62,0,g);g.position.set(x,terrainHeight(x,z),z);scene.add(g);policeOfficers.push({g,parts,health:3,down:false,respawn:0,knockTimer:0,attackCooldown:0,phase:rand()*8});}
 for(let i=0;i<8;i++){const seg=roadSegments[(i*3+1)%roadSegments.length];const x=seg.orientation==='v'?seg.x+5:seg.x+(rand()-.5)*Math.max(4,seg.w*.35);const z=seg.orientation==='v'?seg.z+(rand()-.5)*Math.max(4,seg.d*.45):seg.z+5;makePoliceOfficer(x,z)}
 function makePoliceCar(x,z,angle,index,type='sedan'){const c=makeCar(x,z,0xe5e8eb,angle,false,null,type);c.police=true;c.policeIndex=index;c.cruise=0;c.speed=0;c.ai=true;box(1.1,.12,.42,mat(0x202b36),0,2.05,0,c.group);const red=box(.42,.16,.34,mat(0xe13b43,.25,.2),-.3,2.17,0,c.group);const blue=box(.42,.16,.34,mat(0x347de0,.25,.2),.3,2.17,0,c.group);c.sirenParts=[red,blue];c.group.userData.sirenTime=0;policeCars.push(c);return c;}
 for(let i=0;i<8;i++){const seg=roadSegments[(i*5+2)%roadSegments.length];const x=seg.orientation==='v'?seg.x+(i%2?2.3:-2.3):seg.x+(rand()-.5)*(seg.w*.35);const z=seg.orientation==='v'?seg.z+(rand()-.5)*(seg.d*.35):seg.z+(i%2?2.3:-2.3);const angle=seg.orientation==='v'?(i%2?Math.PI:0):(i%2?Math.PI/2:-Math.PI/2);makePoliceCar(x,z,angle,i,i%3===0?'suv':'sedan');}
@@ -616,7 +616,17 @@ function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
- trafficClock+=dt;if(!timeOverride)dayClock=(dayClock+dt)%DAY_LENGTH;const gameMinutes=Math.floor((dayClock/DAY_LENGTH)*24*60);$('gameTime').textContent='TIME '+String(Math.floor(gameMinutes/60)).padStart(2,'0')+':'+String(gameMinutes%60).padStart(2,'0');const sunAngle=(dayClock/DAY_LENGTH)*Math.PI*2-Math.PI*.5;const daylight=Math.max(0,Math.sin(sunAngle));const night=1-daylight;sun.position.set(Math.cos(sunAngle)*150,Math.max(-25,Math.sin(sunAngle)*190),Math.sin(sunAngle)*100);sun.intensity=.12+daylight*2.35;ambientSky.intensity=.28+daylight*1.55;ambientSky.color.copy(new THREE.Color(0x789acb).lerp(new THREE.Color(0xd9f4ff),daylight));scene.background.copy(nightColor.clone().lerp(dayColor,daylight));scene.fog.color.copy(scene.background);scene.fog.near=daylight>0.15?130:85;scene.fog.far=daylight>0.15?680:470;renderer.toneMappingExposure=.72+daylight*.42;for(const light of nightLights)light.intensity=night*7.0;for(const car of cars){if(car.beams){car.beams.forEach(b=>b.intensity=night*2.8);car.headMat.emissiveIntensity=night*1.35;car.tailMat.emissiveIntensity=night*1.05;}}if(window.__oceanMaterial?.userData.shader)window.__oceanMaterial.userData.shader.uniforms.oceanTime={value:trafficClock};garageNoticeCooldown=Math.max(0,garageNoticeCooldown-dt);
+ trafficClock+=dt;if(!timeOverride)dayClock=(dayClock+dt)%DAY_LENGTH;
+ const lightTarget=inCar?inCar.group.position:player.position;
+ const nearbyHeadlightCars=cars.filter(c=>c!==inCar&&!c.destroyed&&!c.crashed&&c.group.visible).map(c=>({car:c,d:c.group.position.distanceTo(lightTarget)})).filter(v=>v.d<95).sort((a,b)=>a.d-b.d).slice(0,8);
+ const litCars=new Set(nearbyHeadlightCars.map(v=>v.car));
+ for(const c of cars){
+  if(!c.nearHeadlights&&litCars.has(c)){
+   c.nearHeadlights=[];
+   for(const side of [-1,1]){const beam=new THREE.PointLight(0xffe8b6,0,34,1.6);beam.position.set(side*.78,1.05,(c.length||4.2)*.53);c.group.add(beam);c.nearHeadlights.push(beam);}
+  }
+  if(c.nearHeadlights){const active=litCars.has(c);for(const beam of c.nearHeadlights)beam.intensity=active?night*2.3:0;}
+ }const gameMinutes=Math.floor((dayClock/DAY_LENGTH)*24*60);$('gameTime').textContent='TIME '+String(Math.floor(gameMinutes/60)).padStart(2,'0')+':'+String(gameMinutes%60).padStart(2,'0');const sunAngle=(dayClock/DAY_LENGTH)*Math.PI*2-Math.PI*.5;const daylight=Math.max(0,Math.sin(sunAngle));const night=1-daylight;sun.position.set(Math.cos(sunAngle)*150,Math.max(-25,Math.sin(sunAngle)*190),Math.sin(sunAngle)*100);sun.intensity=.12+daylight*2.35;ambientSky.intensity=.28+daylight*1.55;ambientSky.color.copy(new THREE.Color(0x789acb).lerp(new THREE.Color(0xd9f4ff),daylight));scene.background.copy(nightColor.clone().lerp(dayColor,daylight));scene.fog.color.copy(scene.background);scene.fog.near=daylight>0.15?130:85;scene.fog.far=daylight>0.15?680:470;renderer.toneMappingExposure=.72+daylight*.42;for(const light of nightLights)light.intensity=night*7.0;for(const car of cars){if(car.beams){car.beams.forEach(b=>b.intensity=night*2.8);car.headMat.emissiveIntensity=night*1.35;car.tailMat.emissiveIntensity=night*1.05;}}garageNoticeCooldown=Math.max(0,garageNoticeCooldown-dt);
  if(inCar&&!inCar.aircraft&&inCar.group.position.x>GARAGE.minX&&inCar.group.position.x<GARAGE.maxX&&inCar.group.position.z>GARAGE.minZ&&inCar.group.position.z<GARAGE.maxZ&&Math.abs(inCar.speed||0)<2&&inCar.health<100){
   if(cash>=GARAGE.fee){setCash(cash-GARAGE.fee);inCar.health=100;inCar.destroyed=false;inCar.crashed=false;inCar.crashCooldown=0;notice('Vehicle repaired • -$'+GARAGE.fee)}
   else if(garageNoticeCooldown<=0){notice('Repairs cost $'+GARAGE.fee+' • Not enough cash');garageNoticeCooldown=2.5}
@@ -754,7 +764,7 @@ if($('bigMap').style.display==='flex'&&!mapDrag)drawBigMap();
  }else{
   const p=player.position;swimming=waterAt(p);const sprinting=keys.ShiftLeft&&stamina>1&&!swimming&&!adminFlight;const sp=adminFlight?12:(swimming?3.5:(sprinting?10:6));
   if(sprinting&&moveInputActive())stamina=Math.max(0,stamina-dt*24);else stamina=Math.min(100,stamina+dt*(swimming?7:17));
-  const move=new THREE.Vector3();if(keys.KeyW)move.add(forward);if(keys.KeyS)move.sub(forward);if(keys.KeyD)move.add(right);if(keys.KeyA)move.sub(right);if(move.lengthSq()>0){move.normalize();p.addScaledVector(move,sp*dt);player.rotation.y=yaw;walkT+=dt*10;legL.rotation.x=Math.sin(walkT)*.65;legR.rotation.x=-Math.sin(walkT)*.65;armL.rotation.x=-Math.sin(walkT)*.4;armR.rotation.x=Math.sin(walkT)*.4}else{legL.rotation.x=legR.rotation.x=armL.rotation.x=armR.rotation.x=0}
+  const move=new THREE.Vector3();if(keys.KeyW)move.add(forward);if(keys.KeyS)move.sub(forward);if(keys.KeyD)move.add(right);if(keys.KeyA)move.sub(right);if(move.lengthSq()>0){move.normalize();p.addScaledVector(move,sp*dt);walkT+=dt*10;legL.rotation.x=-Math.sin(walkT)*.65;legR.rotation.x=Math.sin(walkT)*.65;armL.rotation.x=-Math.sin(walkT)*.4;armR.rotation.x=Math.sin(walkT)*.4}else{legL.rotation.x=legR.rotation.x=armL.rotation.x=armR.rotation.x=0}
   if(adminFlight){swimming=false;velocityY=0;p.y+=((keys.Space?1:0)-(keys.ShiftLeft?1:0))*12*dt;p.y=Math.max(terrainHeight(p.x,p.z)+1.4,Math.min(110,p.y));onGround=false;$('barWrap').style.display='none';underwater=0;drownTimer=0;$('mode').textContent='FLIGHT MODE'}
   else if(swimming){velocityY+=(keys.Space?5:(keys.ShiftLeft?-1.5:-.45))*dt;velocityY*=Math.pow(.94,dt*60);p.y+=velocityY*dt;p.y=Math.max(-2.4,Math.min(.05,p.y));$('barWrap').style.display='block';underwater=p.y<-.8?Math.min(1,underwater+dt*.12):Math.max(0,underwater-dt*.6);$('bar').style.width=(100-underwater*100)+'%';$('mode').textContent=p.y<-.8?'UNDERWATER':'SWIMMING';if(p.y<-.8){drownTimer+=dt;if(drownTimer>3.5)health=Math.max(0,health-dt*18)}else drownTimer=Math.max(0,drownTimer-dt*1.5)}
   else{p.y+=velocityY*dt;velocityY-=19*dt;const floor=terrainHeight(p.x,p.z);if(p.y<=floor){p.y=floor;velocityY=0;onGround=true}else onGround=false;$('barWrap').style.display='none';underwater=0;drownTimer=0;$('mode').textContent='ON FOOT'}
