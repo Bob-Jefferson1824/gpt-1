@@ -50,7 +50,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 047</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 048</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="cashHUD" style="position:absolute;right:24px;top:178px;z-index:8;background:#07131dcc;border:1px solid #ffffff26;border-radius:9px;padding:10px 14px;color:#8de0a2;font-size:21px;font-weight:700">$500</div>
@@ -70,17 +70,18 @@
  </div>
 </div></div>
 <div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>🛠 Garage</span><span>▲ You</span></div></div></div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 047 adds paid repairs, cash pickups and admin tools.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 048 upgrades the ocean, lighting, vehicles, people and city detail.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x9ac8d5);scene.fog=new THREE.Fog(0x9ac8d5,130,680);
 const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,1500);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;document.body.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xd9f4ff,0x52604b,2.0));
-const sun=new THREE.DirectionalLight(0xffedcf,2.6);sun.position.set(-100,150,80);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-430;sun.shadow.camera.right=430;sun.shadow.camera.top=430;sun.shadow.camera.bottom=-430;scene.add(sun);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.outputColorSpace=THREE.SRGBColorSpace;document.body.appendChild(renderer.domElement);
+const ambientSky=new THREE.HemisphereLight(0xd9f4ff,0x52604b,1.65);scene.add(ambientSky);
+const sun=new THREE.DirectionalLight(0xffedcf,2.3);sun.position.set(-100,150,80);sun.castShadow=true;sun.shadow.mapSize.set(1536,1536);sun.shadow.bias=-0.00018;sun.shadow.normalBias=.035;sun.shadow.camera.left=-430;sun.shadow.camera.right=430;sun.shadow.camera.top=430;sun.shadow.camera.bottom=-430;scene.add(sun);
 const mat=(c,r=.85,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const nightLights=[];let dayClock=0;const DAY_LENGTH=900;const nightColor=new THREE.Color(0x071426),dayColor=new THREE.Color(0x9ac8d5);
 const mats={asphalt:mat(0x303b42),side:mat(0xb6b7ad),line:mat(0xe8dfc1),grass:mat(0x668b59),sand:mat(0xd6c18d),water: new THREE.MeshStandardMaterial({color:0x167f9c,roughness:.38,metalness:.04}),glass: new THREE.MeshStandardMaterial({color:0x9ed8e9,roughness:.18,metalness:.35}),white:mat(0xe7e5d9),dark:mat(0x1c252b)};
 const box=(w,h,d,material,x,y,z,parent=scene)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o};
 // Build 024 expands the world to 900m square. The original downtown remains central,
@@ -133,12 +134,18 @@ terrainGeo.computeVertexNormals();
 const grassMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:1,vertexColors:true});
 const ground=new THREE.Mesh(terrainGeo,grassMaterial);ground.receiveShadow=true;ground.frustumCulled=false;scene.add(ground);
 function shorelineAt(x){return -158+Math.sin(x*.017)*13+Math.sin(x*.043+1.4)*5+Math.sin(x*.008-0.7)*8}
+const oceanGeo=new THREE.BufferGeometry(),oceanNX=100,oceanNZ=42,oceanPositions=new Float32Array((oceanNX+1)*(oceanNZ+1)*3),oceanBase=[];
 {
- const v=[],idx=[];
- for(let x=-450;x<=450;x+=5){const shore=shorelineAt(x)-5;v.push(x,-.055,-450,x,-.055,shore)}
- for(let i=0;i<180;i++){const k=i*2;idx.push(k,k+2,k+1,k+1,k+2,k+3)}
- const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));g.setIndex(idx);g.computeVertexNormals();
- const ocean=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0x167f9c,side:THREE.DoubleSide,toneMapped:false,depthWrite:true}));ocean.frustumCulled=false;scene.add(ocean);
+ const indices=[];
+ for(let ix=0;ix<=oceanNX;ix++){const x=-450+ix*9;const shore=shorelineAt(x)-5;
+  for(let iz=0;iz<=oceanNZ;iz++){const t=iz/oceanNZ,z=-450+(shore+450)*t,k=(ix*(oceanNZ+1)+iz)*3;oceanPositions[k]=x;oceanPositions[k+1]=0;oceanPositions[k+2]=z;oceanBase.push(x,z);
+   if(ix<oceanNX&&iz<oceanNZ){const a=ix*(oceanNZ+1)+iz,b=a+oceanNZ+1;indices.push(a,b,a+1,b,b+1,a+1)}
+  }
+ }
+ oceanGeo.setAttribute('position',new THREE.BufferAttribute(oceanPositions,3));oceanGeo.setIndex(indices);oceanGeo.computeVertexNormals();
+ const oceanMat=new THREE.MeshStandardMaterial({color:0x126b88,roughness:.19,metalness:.22,side:THREE.DoubleSide});
+ oceanMat.onBeforeCompile=shader=>{shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nuniform float oceanTime; varying vec3 oceanWorld;').replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.y += sin(position.x*0.035 + oceanTime*1.25)*0.22 + cos(position.z*0.052 - oceanTime*0.9)*0.13 + sin((position.x+position.z)*0.018+oceanTime*.65)*0.16;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\noceanWorld = worldPosition.xyz;').replace('#include <fragment_common>','#include <fragment_common>\nvarying vec3 oceanWorld;');oceanMat.userData.shader=shader};
+ const ocean=new THREE.Mesh(oceanGeo,oceanMat);ocean.frustumCulled=false;ocean.receiveShadow=true;scene.add(ocean);window.__oceanMaterial=oceanMat;
 }
 {
  const v=[],idx=[];let last=-1;
@@ -200,15 +207,22 @@ function makeBuilding(x,z,w,d,h,style=0){
  box(w+.5,.35,d+.5,mat(0x505b60),x,h+.665,z);
  // Recessed-looking windows on the two street-facing sides
  const floors=Math.max(2,Math.floor(h/3.1));
+ const sillMat=mat(0x58676a,.78),frameMat=mat(0xd1d2c8,.65,.12);
  for(let f=0;f<floors;f++){
   for(let side=-1;side<=1;side++){
-   box(1.35,1.35,.045,windowMat,x+side*(w/3),2+f*3.1,z+d/2+.035);
-   box(.045,1.35,1.35,windowMat,x+w/2+.035,2+f*3.1,z+side*(d/3));
+   box(1.42,1.55,.055,windowMat,x+side*(w/3),2+f*3.1,z+d/2+.045);
+   box(.055,1.55,1.42,windowMat,x+w/2+.045,2+f*3.1,z+side*(d/3));
+   box(1.5,.075,.09,frameMat,x+side*(w/3),1.23+f*3.1,z+d/2+.065);
+   box(.09,.075,1.5,frameMat,x+w/2+.065,1.23+f*3.1,z+side*(d/3));
   }
  }
  // Shopfront trim and a detailed roof unit
  if(h<15){box(w*.72,.22,.12,mat(0x384c54),x,.9,z+d/2+.1);box(w*.22,.8,.2,mat(0x27343b),x,.65,z+d/2+.17)}
  box(w*.24,.7,d*.22,mat(0x68777a),x-w*.22,h+1.02,z-d*.2);
+ // Roof parapet, service vents and subtle corner pilasters break up plain block silhouettes.
+ for(const sx of [-1,1]){box(.18,h,.18,frameMat,x+sx*(w/2-.12),h/2+.34,z-d/2+.12);}
+ box(w*.72,.16,.16,frameMat,x,h+.88,z+d/2+.04);
+ for(let vent=0;vent<2;vent++){const vx=x+(vent?1:-1)*w*.22;box(Math.max(1,w*.12),.32,Math.max(1,d*.12),mat(0x59666a),vx,h+1.12,z-d*.18);box(Math.max(1,w*.12)+.12,.06,Math.max(1,d*.12)+.12,frameMat,vx,h+1.31,z-d*.18)}
  if(h<18){box(w*.78,.22,.7,mat(style%2?0x9d4938:0x315c78),x,.82,z+d/2+.38);box(.18,.85,.18,mat(0x343b3c),x-w*.42,.42,z+d/2+.38)}
  if(w>13&&h>18){for(let balcony=-1;balcony<=1;balcony++){box(2.8,.12,.75,mat(0x59676b),x+balcony*w*.29,3.0,z+d/2+.42);box(2.8,.5,.08,mat(0x879a9b),x+balcony*w*.29,3.3,z+d/2+.75)}}
  buildingColliders.push({minX:x-w/2-.5,maxX:x+w/2+.5,minZ:z-d/2-.5,maxZ:z+d/2+.5});
@@ -340,7 +354,7 @@ box(.3,2.8,.3,fencePost,265,1.4,245);box(.3,2.8,.3,fencePost,290,1.4,245);
 // Street lights
 const pole=mat(0x303b40),lamp=mat(0xffe4a6,.4);
 const verticalStreets=roadSegments.filter(v=>v.orientation==='v'),horizontalStreets=roadSegments.filter(v=>v.orientation==='h');
-for(const v of verticalStreets)for(const h of horizontalStreets){if(rand()>.48)continue;const x=v.x+v.w/2+3,z=h.z+h.w/2+3,g=new THREE.Group();g.position.set(x,terrainHeight(x,z),z);scene.add(g);box(.22,6,.22,pole,0,3,0,g);box(2,.18,.18,pole,1,5.8,0,g);box(.8,.18,.7,lamp,2,5.7,0,g);lightPoleColliders.push({x,z,group:g,fallen:false})}
+for(const v of verticalStreets)for(const h of horizontalStreets){if(rand()>.48)continue;const x=v.x+v.w/2+3,z=h.z+h.w/2+3;if(Math.abs(x)>218||z< -108||z>192||terrainHeight(x,z)>2.2)continue;const g=new THREE.Group();g.position.set(x,terrainHeight(x,z),z);scene.add(g);box(.18,5.7,.18,pole,0,2.85,0,g);box(1.65,.14,.14,pole,.82,5.55,0,g);box(.65,.14,.55,lamp,1.62,5.48,0,g);const glow=new THREE.PointLight(0xffd99a,0,15,2);glow.position.set(1.62,5.25,0);g.add(glow);nightLights.push(glow);lightPoleColliders.push({x,z,group:g,fallen:false})}
 // Park plaza and waterfront promenade
 box(80,.25,42,mat(0xc5bda7),-130,.05,80);for(let i=0;i<12;i++)tree(-165+(i%6)*13,64+Math.floor(i/6)*30,.65);
 // Waterfront kept clear: marina dock and pier removed.
@@ -406,10 +420,16 @@ document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitc
 $('play').onclick=()=>{$('start').style.display='none'};
 const cars=[];const ejectedDrivers=[];const carColors=[0xb83d36,0x315c83,0xd5d1c4,0x313b43,0xc18b35,0x47755d];
 function makeHumanoid(g,shirtMaterial,pose='standing'){
- const torso=box(.9,1.15,.48,shirtMaterial,0,1.45,0,g),head=new THREE.Mesh(new THREE.SphereGeometry(.34,16,12),skin);head.position.y=2.25;head.castShadow=true;g.add(head);
- const legL=box(.32,.85,.35,pants,-.25,.55,0,g),legR=box(.32,.85,.35,pants,.25,.55,0,g);
- const armL=box(.25,.9,.28,skin,-.62,1.48,0,g),armR=box(.25,.9,.28,skin,.62,1.48,0,g);
- return {torso,head,legL,legR,armL,armR};
+ const limb=(radius,length,material,x,y)=>{const mesh=new THREE.Mesh(new THREE.CapsuleGeometry(radius,Math.max(.05,length-radius*2),4,8),material);mesh.position.set(x,y,0);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh};
+ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.39,.52,5,12),shirtMaterial);torso.position.set(0,1.48,0);torso.castShadow=true;g.add(torso);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.22,10),skin);neck.position.y=2.02;g.add(neck);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.31,20,16),skin);head.scale.set(1,.99,.92);head.position.y=2.29;head.castShadow=true;g.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.315,16,10,0,Math.PI*2,0,Math.PI*.48),mat(0x30251f,.95));hair.position.set(0,2.39,-.025);g.add(hair);
+ const earL=new THREE.Mesh(new THREE.SphereGeometry(.075,10,8),skin),earR=earL.clone();earL.position.set(-.3,2.28,0);earR.position.set(.3,2.28,0);g.add(earL,earR);
+ const legL=limb(.17,.92,pants,-.23,.58),legR=limb(.17,.92,pants,.23,.58);
+ const armL=limb(.135,.82,shirtMaterial,-.53,1.48),armR=limb(.135,.82,shirtMaterial,.53,1.48);
+ const shoeL=box(.25,.16,.42,shoe,-.23,.12,.08,g),shoeR=box(.25,.16,.42,shoe,.23,.12,.08,g);
+ return {torso,head,legL,legR,armL,armR,shoeL,shoeR};
 }
 function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
  const g=new THREE.Group();scene.add(g);g.position.set(x,terrainHeight(x,z)+.26,z);g.rotation.y=angle;
@@ -436,9 +456,22 @@ function makeCar(x,z,color,angle=0,playerCar=false,lane=null,type='sedan'){
   box(.36,.2,.09,mat(0xb82e2a,.3),sx*v.w*.34,v.h*.68,-v.l/2-.045,g);
  }
  for(const wx of [-v.wheelX,v.wheelX])for(const wz of [-v.wheelZ,v.wheelZ]){
-  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.31,20),rubber);wheel.rotation.z=Math.PI/2;wheel.position.set(wx,.18,wz);g.add(wheel);
-  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.2,.2,.325,16),chrome);hub.rotation.z=Math.PI/2;hub.position.set(wx,.18,wz);g.add(hub);
+  const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.31,28),rubber);wheel.rotation.z=Math.PI/2;wheel.position.set(wx,.18,wz);g.add(wheel);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(.205,.205,.326,24),chrome);hub.rotation.z=Math.PI/2;hub.position.set(wx,.18,wz);g.add(hub);
+  const hubCap=new THREE.Mesh(new THREE.CylinderGeometry(.105,.105,.333,16),mat(0x4d5a60,.28,.75));hubCap.rotation.z=Math.PI/2;hubCap.position.set(wx*1.01,.18,wz);g.add(hubCap);
  }
+ // Side mirrors, door seams, front/rear bumpers and a subtle lower sill.
+ for(const sx of [-1,1]){
+  box(.24,.16,.25,body,sx*(v.cabW/2+.12),v.h+v.cabH*.48,cabZ+v.cabL*.28,g);
+  box(.075,.13,.075,trim,sx*(v.cabW/2+.12),v.h+v.cabH*.48,cabZ+v.cabL*.28,g);
+  for(const dz of [-.38,.25])box(.018,v.h*.72,.018,trim,sx*(v.w/2+.012),v.h*.52,dz,g);
+  box(.12,.13,v.l*.68,trim,sx*(v.w/2-.03),.16,0,g);
+ }
+ box(v.w*.96,.16,.16,chrome,0,.19,v.l/2+.02,g);
+ box(v.w*.96,.16,.16,trim,0,.19,-v.l/2-.02,g);
+ // Subtle roof glazing panel improves the silhouette without changing collision dimensions.
+ if(type!=='van'){box(v.cabW*.66,.025,v.cabL*.34,mat(0x263d48,.22,.32),0,v.h+v.cabH-.015,cabZ,g)}
+
  if(type==='compact'){box(v.w*.72,.12,.18,trim,0,v.h+.08,-v.l*.46,g)}
  if(type==='suv'){box(v.cabW*.72,.1,.16,trim,0,v.h+v.cabH+.02,-.05,g);box(.12,.55,.12,trim,-v.cabW*.42,v.h+v.cabH*.3,0,g);box(.12,.55,.12,trim,v.cabW*.42,v.h+v.cabH*.3,0,g)}
  if(type==='van'){box(v.w*.94,.18,v.l*.12,trim,0,v.h+.12,-v.l*.38,g);box(.08,.7,.08,trim,-v.w*.48,v.h+.25,-.2,g);box(.08,.7,.08,trim,v.w*.48,v.h+.25,-.2,g)}
@@ -583,7 +616,7 @@ function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
- trafficClock+=dt;garageNoticeCooldown=Math.max(0,garageNoticeCooldown-dt);
+ trafficClock+=dt;dayClock=(dayClock+dt)%DAY_LENGTH;const sunAngle=(dayClock/DAY_LENGTH)*Math.PI*2-Math.PI*.5;const daylight=Math.max(0,Math.sin(sunAngle));const night=1-daylight;sun.position.set(Math.cos(sunAngle)*150,Math.max(-25,Math.sin(sunAngle)*190),Math.sin(sunAngle)*100);sun.intensity=.12+daylight*2.35;ambientSky.intensity=.28+daylight*1.55;ambientSky.color.copy(new THREE.Color(0x789acb).lerp(new THREE.Color(0xd9f4ff),daylight));scene.background.copy(nightColor.clone().lerp(dayColor,daylight));scene.fog.color.copy(scene.background);scene.fog.near=daylight>0.15?130:85;scene.fog.far=daylight>0.15?680:470;renderer.toneMappingExposure=.72+daylight*.42;for(const light of nightLights)light.intensity=night*1.7;if(window.__oceanMaterial?.userData.shader)window.__oceanMaterial.userData.shader.uniforms.oceanTime={value:trafficClock};garageNoticeCooldown=Math.max(0,garageNoticeCooldown-dt);
  if(inCar&&!inCar.aircraft&&inCar.group.position.x>GARAGE.minX&&inCar.group.position.x<GARAGE.maxX&&inCar.group.position.z>GARAGE.minZ&&inCar.group.position.z<GARAGE.maxZ&&Math.abs(inCar.speed||0)<2&&inCar.health<100){
   if(cash>=GARAGE.fee){setCash(cash-GARAGE.fee);inCar.health=100;inCar.destroyed=false;inCar.crashed=false;inCar.crashCooldown=0;notice('Vehicle repaired • -$'+GARAGE.fee)}
   else if(garageNoticeCooldown<=0){notice('Repairs cost $'+GARAGE.fee+' • Not enough cash');garageNoticeCooldown=2.5}
