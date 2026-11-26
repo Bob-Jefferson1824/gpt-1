@@ -50,7 +50,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 054</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 055</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div><div id="gameTime">TIME 08:00</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="cashHUD" style="position:absolute;right:24px;top:178px;z-index:8;background:#07131dcc;border:1px solid #ffffff26;border-radius:9px;padding:10px 14px;color:#8de0a2;font-size:21px;font-weight:700">$500</div>
@@ -617,6 +617,7 @@ function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
  trafficClock+=dt;if(!timeOverride)dayClock=(dayClock+dt)%DAY_LENGTH;
+ const gameMinutes=Math.floor((dayClock/DAY_LENGTH)*24*60);$('gameTime').textContent='TIME '+String(Math.floor(gameMinutes/60)).padStart(2,'0')+':'+String(gameMinutes%60).padStart(2,'0');const sunAngle=(dayClock/DAY_LENGTH)*Math.PI*2-Math.PI*.5;const daylight=Math.max(0,Math.sin(sunAngle));const night=1-daylight;
  const lightTarget=inCar?inCar.group.position:player.position;
  const nearbyHeadlightCars=cars.filter(c=>c!==inCar&&!c.destroyed&&!c.crashed&&c.group.visible).map(c=>({car:c,d:c.group.position.distanceTo(lightTarget)})).filter(v=>v.d<95).sort((a,b)=>a.d-b.d).slice(0,8);
  const litCars=new Set(nearbyHeadlightCars.map(v=>v.car));
@@ -626,7 +627,7 @@ function update(dt){
    for(const side of [-1,1]){const beam=new THREE.PointLight(0xffe8b6,0,34,1.6);beam.position.set(side*.78,1.05,(c.length||4.2)*.53);c.group.add(beam);c.nearHeadlights.push(beam);}
   }
   if(c.nearHeadlights){const active=litCars.has(c);for(const beam of c.nearHeadlights)beam.intensity=active?night*2.3:0;}
- }const gameMinutes=Math.floor((dayClock/DAY_LENGTH)*24*60);$('gameTime').textContent='TIME '+String(Math.floor(gameMinutes/60)).padStart(2,'0')+':'+String(gameMinutes%60).padStart(2,'0');const sunAngle=(dayClock/DAY_LENGTH)*Math.PI*2-Math.PI*.5;const daylight=Math.max(0,Math.sin(sunAngle));const night=1-daylight;sun.position.set(Math.cos(sunAngle)*150,Math.max(-25,Math.sin(sunAngle)*190),Math.sin(sunAngle)*100);sun.intensity=.12+daylight*2.35;ambientSky.intensity=.28+daylight*1.55;ambientSky.color.copy(new THREE.Color(0x789acb).lerp(new THREE.Color(0xd9f4ff),daylight));scene.background.copy(nightColor.clone().lerp(dayColor,daylight));scene.fog.color.copy(scene.background);scene.fog.near=daylight>0.15?130:85;scene.fog.far=daylight>0.15?680:470;renderer.toneMappingExposure=.72+daylight*.42;for(const light of nightLights)light.intensity=night*7.0;for(const car of cars){if(car.beams){car.beams.forEach(b=>b.intensity=night*2.8);car.headMat.emissiveIntensity=night*1.35;car.tailMat.emissiveIntensity=night*1.05;}}garageNoticeCooldown=Math.max(0,garageNoticeCooldown-dt);
+ }sun.position.set(Math.cos(sunAngle)*150,Math.max(-25,Math.sin(sunAngle)*190),Math.sin(sunAngle)*100);sun.intensity=.12+daylight*2.35;ambientSky.intensity=.28+daylight*1.55;ambientSky.color.copy(new THREE.Color(0x789acb).lerp(new THREE.Color(0xd9f4ff),daylight));scene.background.copy(nightColor.clone().lerp(dayColor,daylight));scene.fog.color.copy(scene.background);scene.fog.near=daylight>0.15?130:85;scene.fog.far=daylight>0.15?680:470;renderer.toneMappingExposure=.72+daylight*.42;for(const light of nightLights)light.intensity=night*7.0;for(const car of cars){if(car.beams){car.beams.forEach(b=>b.intensity=night*2.8);car.headMat.emissiveIntensity=night*1.35;car.tailMat.emissiveIntensity=night*1.05;}}garageNoticeCooldown=Math.max(0,garageNoticeCooldown-dt);
  if(inCar&&!inCar.aircraft&&inCar.group.position.x>GARAGE.minX&&inCar.group.position.x<GARAGE.maxX&&inCar.group.position.z>GARAGE.minZ&&inCar.group.position.z<GARAGE.maxZ&&Math.abs(inCar.speed||0)<2&&inCar.health<100){
   if(cash>=GARAGE.fee){setCash(cash-GARAGE.fee);inCar.health=100;inCar.destroyed=false;inCar.crashed=false;inCar.crashCooldown=0;notice('Vehicle repaired • -$'+GARAGE.fee)}
   else if(garageNoticeCooldown<=0){notice('Repairs cost $'+GARAGE.fee+' • Not enough cash');garageNoticeCooldown=2.5}
