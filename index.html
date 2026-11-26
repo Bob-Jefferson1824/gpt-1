@@ -16,9 +16,33 @@
 #help b{color:#9fe1ff}#location{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:2px;font-weight:800;color:#dff8ff}#vehicleName{position:absolute;left:50%;bottom:82px;transform:translateX(-50%);font-size:19px;font-weight:900;letter-spacing:2px;padding:9px 16px;background:#07131dcc;border:1px solid #ffffff33;border-radius:8px;opacity:0;transition:opacity .2s;text-align:center;white-space:nowrap}#vehicleName small{display:block;font-size:9px;letter-spacing:2px;color:#9fcbd8;margin-top:4px}
 #prompt{position:absolute;bottom:100px;left:50%;transform:translateX(-50%);padding:10px 16px;background:#07131ddd;border:1px solid #9fe1ff66;border-radius:8px;font-size:13px;display:none}
 #crosshair{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff9;box-shadow:0 0 4px #000}
-#start{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(#07131d88,#07131ddd);pointer-events:auto}
-#panel{width:min(520px,calc(100% - 36px));padding:30px;background:#101f2b;border:1px solid #7ecce455;border-radius:16px;box-shadow:0 20px 80px #0009}
-#panel h1{margin:0 0 7px;font-size:30px;letter-spacing:2px}#panel p{color:#b8cbd5;line-height:1.6;font-size:14px}#panel button{border:0;border-radius:8px;background:#53b8d9;color:#06131c;font-weight:900;padding:13px 20px;font-size:14px;cursor:pointer}#panel .sub{font-size:11px;color:#8098a6;margin-top:15px}
+#start{position:absolute;inset:0;display:grid;place-items:center;background:#06121b;pointer-events:auto;z-index:20;overflow:hidden}
+#introPages{position:relative;width:100%;height:100%;color:#f4fbff;background:radial-gradient(ellipse at 50% 38%,#1a4054 0%,#0a1c29 48%,#03080d 100%)}
+.introPage{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center}
+.introPage.active{display:flex;animation:introFade .55s ease both}
+@keyframes introFade{from{opacity:0;transform:scale(1.015)}to{opacity:1;transform:scale(1)}}
+.titleKicker{font-size:11px;letter-spacing:6px;color:#9dc8d8;margin-bottom:20px}
+.gameTitle{font-family:Georgia,'Times New Roman',serif;font-size:clamp(76px,15vw,160px);line-height:.88;letter-spacing:8px;margin:0;text-shadow:0 8px 35px #000b,0 0 38px #66c8ee55;font-weight:700}
+.gameTitle span{color:#75d4f0}.cityTitle{font-family:Georgia,'Times New Roman',serif;font-size:clamp(16px,3vw,28px);letter-spacing:9px;color:#d2eaf3;margin-top:25px}
+.titleRule{width:110px;height:2px;background:linear-gradient(90deg,transparent,#77d8f2,transparent);margin:25px auto}
+.introTagline{font-size:10px;letter-spacing:5px;color:#9db4c1}
+.introNext,.introBack,#play{border:1px solid #8bdcf4aa;background:linear-gradient(135deg,#7cdef6,#3b9dbd);color:#06131c;font-weight:900;letter-spacing:1.8px;padding:14px 25px;border-radius:4px;cursor:pointer;box-shadow:0 8px 30px #0006}
+.introNext{margin-top:48px}.introNext span{font-size:18px;margin-left:10px}
+.imageFrame{position:relative;width:min(1100px,90vw);height:min(66vh,690px);border:1px solid #9de4f277;box-shadow:0 25px 90px #000b;overflow:hidden;background:#102b39}
+.imageFrame img{width:100%;height:100%;object-fit:cover;display:block}
+.imageCaption{position:absolute;left:0;right:0;bottom:0;padding:22px;text-align:left;font-family:Georgia,serif;font-size:clamp(20px,3vw,34px);letter-spacing:5px;background:linear-gradient(transparent,#02080ddd);color:#fff}
+.introNav{width:min(1100px,90vw);display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+.introBack{background:#122936;color:#cceaf4;border-color:#8bdcf455;padding:11px 18px}
+.introProgress{position:absolute;bottom:22px;left:0;right:0;display:flex;justify-content:center;gap:9px}
+.progressDot{width:7px;height:7px;border-radius:50%;background:#557080}.progressDot.active{background:#91e7ff;box-shadow:0 0 12px #91e7ff}
+.disclaimerCard{width:min(700px,92vw);padding:clamp(28px,5vw,58px);background:#050607;border:1px solid #ffffff33;box-shadow:0 25px 100px #000;text-align:center}
+.warningMark{width:42px;height:42px;border:2px solid #e6c56b;color:#e6c56b;border-radius:50%;display:grid;place-items:center;margin:0 auto 22px;font-size:24px;font-weight:800}
+.disclaimerLabel{font-size:10px;letter-spacing:5px;color:#d6bd73}
+.disclaimerCard h2{font-family:Georgia,serif;font-size:clamp(24px,4vw,42px);line-height:1.25;letter-spacing:1px;color:#fff;margin:24px 0}
+.disclaimerCard p{max-width:520px;margin:0 auto;color:#aeb5ba;line-height:1.7;font-size:13px}
+.disclaimerLine{height:1px;background:linear-gradient(90deg,transparent,#ffffff55,transparent);margin:28px auto}
+.disclaimerCard #play{padding:15px 30px}.pageCount{font-size:10px;letter-spacing:3px;color:#92aeba}
+@media(max-width:600px){.titleKicker{letter-spacing:3px}.cityTitle{letter-spacing:5px}.imageFrame{height:55vh}.introNav{width:92vw}}
 #notice{position:absolute;top:105px;left:50%;transform:translateX(-50%);padding:8px 13px;background:#07131dcc;border-radius:7px;font-size:12px;opacity:0;transition:opacity .25s}
 #barWrap{position:absolute;right:24px;bottom:25px;width:150px;height:7px;background:#07131dbb;border-radius:8px;display:none;overflow:hidden}#bar{height:100%;width:100%;background:#5bd5ed}
 #minimap{position:absolute;right:22px;bottom:22px;width:176px;height:176px;border:2px solid #d8f4ffbb;border-radius:12px;background:#07131ddd;box-shadow:0 8px 30px #0008;overflow:hidden}#mapCanvas{width:100%;height:100%;display:block}
@@ -50,7 +74,7 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 057</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 058</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div><div id="gameTime">TIME 08:00</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
  <div id="cashHUD" style="position:absolute;right:24px;top:178px;z-index:8;background:#07131dcc;border:1px solid #ffffff26;border-radius:9px;padding:10px 14px;color:#8de0a2;font-size:21px;font-weight:700">$500</div>
@@ -70,7 +94,11 @@
  </div>
 </div></div>
 <div id="bigMap"><div id="bigMapPanel"><div id="bigMapTop"><div>SEABRIGHT CITY MAP<small>Scroll to zoom • Drag to move • Press M or ESC to close</small></div><div id="bigMapControls"><button id="mapZoomOut">−</button><button id="mapZoomIn">+</button><button id="mapRecenter">PLAYER</button><button id="mapClose">CLOSE ✕</button></div></div><div id="bigMapCanvasWrap"><canvas id="bigMapCanvas" width="900" height="900"></canvas></div><div id="bigMapLegend"><span>🔵 Police</span><span>🔴 Fire & Rescue</span><span>✚ Hospital</span><span>🛠 Garage</span><span>▲ You</span></div></div></div>
-<div id="start"><div id="panel"><h1>GPT 1</h1><p>Build 057 keeps the full city population and improves performance by sharing tree geometry and reducing redundant pedestrian collision work.</p><button id="play">ENTER THE CITY</button><div class="sub">WASD to move / drive • Mouse look locks when you enter • E to use vehicles • Best played on desktop</div></div></div>
+<div id="start"><div id="introPages">
+<section class="introPage active" data-page="0"><div class="titleKicker">A COASTAL CITY EXPERIENCE</div><h1 class="gameTitle">GPT <span>1</span></h1><div class="cityTitle">SEABRIGHT CITY</div><div class="titleRule"></div><p class="introTagline">YOUR CITY. YOUR STORY.</p><button class="introNext" id="introNext1">CONTINUE <span>→</span></button></section>
+<section class="introPage" data-page="1"><div class="imageFrame"><img id="introShot" alt="A view of Seabright City from the game"><div class="imageCaption">WELCOME TO SEABRIGHT</div></div><div class="introNav"><button class="introBack" id="introBack2">← BACK</button><button class="introNext" id="introNext2">CONTINUE →</button></div></section>
+<section class="introPage" data-page="2"><div class="disclaimerCard"><div class="warningMark">!</div><div class="disclaimerLabel">IMPORTANT DISCLAIMER</div><h2>NEVER REPEAT THE SCENES SHOWN IN THIS GAME.</h2><p>GPT 1 is a fictional video game. Characters, locations and events are fictional. Actions shown in the game should not be copied in real life.</p><div class="disclaimerLine"></div><button id="play">ENTER SEABRIGHT CITY</button></div><div class="introNav"><button class="introBack" id="introBack3">← BACK</button><span class="pageCount">03 / 03</span></div></section>
+<div class="introProgress"><span class="progressDot active"></span><span class="progressDot"></span><span class="progressDot"></span></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script>
 (()=>{
@@ -417,7 +445,9 @@ document.addEventListener('pointerlockerror',()=>{$('lockHint').style.display='b
 // No click-and-drag handler is used.
 document.addEventListener('click',e=>{if($('bigMap').style.display==='flex'||e.target.closest('#bigMap')||e.target.closest('#adminPanel')||e.target.closest('#adminAccess'))return;if($('start').style.display==='none'&&!locked)requestMouseLock()});
 document.addEventListener('mousemove',e=>{if(locked){yaw-=e.movementX*.0038;pitch=Math.max(-.82,Math.min(.72,pitch-e.movementY*.0032))}});document.addEventListener('mousedown',e=>{if(e.button===0&&$('start').style.display==='none'&&$('bigMap').style.display!=='flex'&&!e.target.closest('#adminPanel')&&!e.target.closest('#adminAccess'))punch()});
-$('play').onclick=()=>{$('start').style.display='none'};
+let introPage=0;function showIntroPage(n){introPage=Math.max(0,Math.min(2,n));document.querySelectorAll('.introPage').forEach((p,i)=>p.classList.toggle('active',i===introPage));document.querySelectorAll('.progressDot').forEach((p,i)=>p.classList.toggle('active',i===introPage));}
+$('introNext1').onclick=()=>showIntroPage(1);$('introBack2').onclick=()=>showIntroPage(0);$('introNext2').onclick=()=>showIntroPage(2);$('introBack3').onclick=()=>showIntroPage(1);
+$('play').onclick=()=>{$('start').style.display='none';requestMouseLock()};
 const cars=[];const ejectedDrivers=[];const carColors=[0xb83d36,0x315c83,0xd5d1c4,0x313b43,0xc18b35,0x47755d];
 function makeHumanoid(g,shirtMaterial,pose='standing'){
  const limb=(radius,length,material,x,y)=>{const mesh=new THREE.Mesh(new THREE.CapsuleGeometry(radius,Math.max(.05,length-radius*2),4,8),material);mesh.position.set(x,y,0);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh};
@@ -955,7 +985,7 @@ $('timeMorning').addEventListener('click',()=>{dayClock=300;timeOverride=true;no
 $('adminMilitary').addEventListener('click',()=>adminSpawn('ARMY',$('adminMilitaryVehicle').checked));
 $('adminFlight').addEventListener('click',()=>{adminFlight=!adminFlight;$('adminFlight').textContent=adminFlight?'DISABLE FLIGHT':'ENABLE FLIGHT';if(adminFlight){velocityY=0;notice('Flight enabled • SPACE up / SHIFT down')}else{player.position.y=terrainHeight(player.position.x,player.position.z);velocityY=0;notice('Flight disabled')}});
 
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);update(dt);mapTimer+=dt;if(mapTimer>.45){drawMinimap();mapTimer=0}renderer.render(scene,camera)}animate();
+let introCaptured=false;function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);update(dt);mapTimer+=dt;if(mapTimer>.45){drawMinimap();mapTimer=0}renderer.render(scene,camera);if(!introCaptured){try{$('introShot').src=renderer.domElement.toDataURL('image/jpeg',.86);introCaptured=true}catch(_){$('introShot').alt='Seabright City preview unavailable'}}}animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 })();
 </script>
