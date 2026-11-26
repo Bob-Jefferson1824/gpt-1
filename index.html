@@ -40,9 +40,10 @@
 </head>
 <body>
 <div id="hud">
- <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 045</small></div>
+ <div id="brand">GPT 1 <small>COASTAL CITY • BUILD 046</small></div>
  <div id="stats"><div id="mode">ON FOOT</div><div id="cameraMode">CAMERA · THIRD PERSON</div><div id="speed">SPEED&nbsp; 0 km/h</div><div id="coords">X 0&nbsp; Z 0</div></div>
  <div id="wanted"><span id="wantedStars">☆☆☆☆☆☆</span><small>WANTED</small></div>
+ <div id="cashHUD" style="position:absolute;right:24px;top:22px;background:#07131dcc;border:1px solid #ffffff26;border-radius:9px;padding:10px 14px;color:#8de0a2;font-size:21px;font-weight:700">$500</div>
  <div id="vitals">HEALTH <span id="healthText">100</span><div class="vital"><span id="healthFill"></span></div>STAMINA <span id="staminaText">100</span><div class="vital"><span id="staminaFill"></span></div></div>
  <div id="help"><b>WASD</b> Move / Drive &nbsp; <b>Mouse</b> Look<br><b>SHIFT</b> Sprint &nbsp; <b>SPACE</b> Jump / Swim<br><b>E</b> Enter / Exit vehicles & aircraft<br><b>Plane:</b> W accelerate &nbsp; S brake &nbsp; A/D steer<br><b>SPACE</b> pitch up (needs speed) &nbsp; <b>SHIFT</b> pitch down<br><b>Helicopter:</b> W/S throttle &nbsp; SPACE/SHIFT altitude<br><b>F / LEFT CLICK</b> Punch &nbsp; <b>V</b> Camera &nbsp; <b>M</b> Full map &nbsp; <b>Stars 2+</b> Roadblocks &nbsp; <b>ESC</b> Release mouse</div>
  <div id="location">SEABRIGHT • DOWNTOWN</div><div id="vehicleName"></div><div id="prompt"></div><div id="crosshair"></div><div id="notice"></div><div id="barWrap"><div id="bar"></div></div><div id="mapLabel">SEABRIGHT • EXPANDED MAP</div><div id="minimap"><canvas id="mapCanvas" width="352" height="352"></canvas></div><div id="lockHint">Click to recapture mouse</div>
@@ -325,16 +326,35 @@ box(80,.25,42,mat(0xc5bda7),-130,.05,80);for(let i=0;i<12;i++)tree(-165+(i%6)*13
 box(38,.18,24,mat(0x3b6975),150,.08,85);box(34,.03,20,mat(0xd7d1b8),150,.19,85);box(.18,.04,20,mat(0xf4e8bd),150,.22,85);box(34,.04,.18,mat(0xf4e8bd),150,.22,85);
 box(25,.22,18,mat(0xb7b0a0),150,.1,-35);box(12,.08,7,mat(0x273b3e),150,.25,-35);box(2,.6,2,mat(0xffd36b),150,.6,-35);
 const fountain= new THREE.Mesh(new THREE.CylinderGeometry(4,4,.5,24),mat(0x9a9c96));fountain.position.set(-130,.35,80);scene.add(fountain);const fountainWater=new THREE.Mesh(new THREE.CylinderGeometry(3.5,3.5,.12,24),mat(0x3c9db2,.2,.1));fountainWater.position.set(-130,.66,80);scene.add(fountainWater);
+ // Open-front player repair garage, placed beyond the northern road.
+ const GARAGE={x:0,z:-137,minX:-10,maxX:10,minZ:-146,maxZ:-124};
+ box(22,.22,25,mat(0x555d61),0,.08,-137);
+ box(22,.45,1.1,mat(0x27333a),0,6.4,-149.2);
+ box(.65,6.3,24,mat(0x68777a),-10.5,3.2,-137);
+ box(.65,6.3,24,mat(0x68777a),10.5,3.2,-137);
+ box(23,.7,1,mat(0x35454c),0,6.2,-125);
+ box(23,.65,1,mat(0x35454c),0,6.2,-149);
+ box(1,.25,25,mat(0xd9b44a),-9.4,.35,-137);
+ box(1,.25,25,mat(0xd9b44a),9.4,.35,-137);
+ box(14,.22,.22,mat(0xe8bd48),0,5.55,-124.7);
+ box(10,.18,.18,mat(0xe8bd48),0,5.9,-124.7);
+ box(9,1.5,.22,mat(0x173b35),0,7,-125.1);
+
 
 // Player
 const player=new THREE.Group();scene.add(player);
 const skin=mat(0xc58f6d),shirt=mat(0x243f59),pants=mat(0x252b35),shoe=mat(0x15191d);
 const playerParts=makeHumanoid(player,shirt);const {torso,head,legL,legR,armL,armR}=playerParts;
 let punchTime=0;
-const PLAYER_SPAWN=new THREE.Vector3(0,0,0);
+const PLAYER_SPAWN=new THREE.Vector3(0,0,-116);
 player.position.copy(PLAYER_SPAWN);
 let yaw=0,pitch=-.15,locked=false,inCar=null,swimming=false,underwater=0,velocityY=0,onGround=true,walkT=0,cameraMode=0;
 let health=100,stamina=100,drownTimer=0,deadTimer=0;
+let cash=500;try{const saved=Number(localStorage.getItem('gpt1_cash'));if(Number.isFinite(saved)&&saved>=0)cash=Math.floor(saved)}catch(_){}
+function setCash(value){cash=Math.max(0,Math.floor(value));try{localStorage.setItem('gpt1_cash',String(cash))}catch(_){}const el=$('cashHUD');if(el)el.textContent='$'+cash.toLocaleString('en-AU')}
+function cashDrop(){const amount=Math.floor(rand()*101);setCash(cash+amount);if(amount>0)notice('Cash found: +$'+amount);else notice('No cash dropped')}
+setCash(cash);
+
 const keys={};addEventListener('keydown',e=>{if(e.code==='KeyM'&&!e.repeat){toggleBigMap();e.preventDefault();return}if(e.code==='Escape'&&$('bigMap').style.display==='flex'){toggleBigMap(false);return}keys[e.code]=true;if(['Space','ArrowUp','ArrowDown'].includes(e.code))e.preventDefault();if(e.code==='KeyE')interact();if(e.code==='KeyF')punch();if(e.code==='KeyV'){cameraMode=(cameraMode+1)%3;notice(['Third-person camera','First-person camera','Cinematic camera'][cameraMode]);}if(e.code==='Space'&&!inCar){if(swimming)velocityY=3.2;else if(onGround){velocityY=7;onGround=false}}});
 addEventListener('keyup',e=>keys[e.code]=false);
 function requestMouseLock(){
@@ -414,7 +434,7 @@ for(let i=0;i<52;i++){
  }
  if(spawn)makeCar(spawn.x,spawn.z,carColors[i%carColors.length],spawn.angle,false,spawn.lane,trafficTypes[i%trafficTypes.length]);
 }
-const myCar=makeCar(7,5,0xd64b37,Math.PI,true);myCar.ai=false;myCar.driver=false;myCar.occupant.visible=false;
+const myCar=makeCar(0,-112,0xd64b37,Math.PI,true);myCar.ai=false;myCar.driver=false;myCar.occupant.visible=false;
 const aircraft=[];
 function makeAircraft(kind,x,z){
  const g=new THREE.Group();scene.add(g);g.position.set(x,terrainHeight(x,z)+.35,z);
@@ -510,7 +530,7 @@ for(let i=0;i<8;i++){const seg=roadSegments[(i*5+2)%roadSegments.length];const x
  let armyTankDeployed=false;
 
 
-for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const parts=makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,terrainHeight(x,z),z);scene.add(g);people.push({g,parts,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));const officer=policeOfficers.filter(o=>!o.down&&o.g.visible).map(o=>({o,d:o.g.position.distanceTo(player.position)})).filter(v=>v.d<3.2&&v.o.g.position.clone().sub(player.position).setY(0).normalize().dot(forward)>.15).sort((a,b)=>a.d-b.d)[0]?.o;if(officer){raiseWanted(.35,'Officer attacked');officer.health--;const away=officer.g.position.clone().sub(player.position);away.y=0;away.normalize();officer.g.position.addScaledVector(away,1.15);arcadeBurst(officer.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(officer.health<=0){officer.down=true;officer.respawn=18;officer.knockTimer=1.1;officer.g.rotation.x=Math.PI/2;officer.g.position.y=.04;notice('Officer temporarily taken out')}return}let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;if(policeWitnessed(player.position))raiseWanted(.65,'Assault reported');target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
+for(let i=0;i<48;i++){const g=new THREE.Group();const x=-175+rand()*350,z=-112+rand()*290;const parts=makeHumanoid(g,shirts[i%shirts.length]);g.position.set(x,terrainHeight(x,z),z);scene.add(g);people.push({g,parts,x,z,dir:rand()*Math.PI*2,phase:rand()*8,hitVel:new THREE.Vector3(),hitTimer:0,health:2,down:false,respawn:0,knockTimer:0})} const hitParticles=[];let hitCooldown=0;function arcadeBurst(position){for(let i=0;i<20;i++){const particle=new THREE.Mesh(new THREE.BoxGeometry(.13,.13,.13),mat(i%2?0xff5548:0xffb347,.6));particle.position.copy(position);scene.add(particle);hitParticles.push({mesh:particle,vel:new THREE.Vector3((rand()-.5)*5,1+rand()*5,(rand()-.5)*5),life:.55+rand()*.35})}}function knockOutPedestrian(n,impulse){if(n.down)return;cashDrop();n.down=true;n.respawn=3.8;n.knockTimer=1.05;n.g.visible=true;n.g.rotation.x=Math.PI/2;n.g.position.y=.04;n.hitVel.set(0,0,0);n.hitTimer=0;arcadeBurst(n.g.position.clone().add(new THREE.Vector3(0,.5,0)));if(impulse)n.g.position.add(impulse)}function punch(){if(inCar||swimming||hitCooldown>0)return;hitCooldown=.58;punchTime=.42;const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));const officer=policeOfficers.filter(o=>!o.down&&o.g.visible).map(o=>({o,d:o.g.position.distanceTo(player.position)})).filter(v=>v.d<3.2&&v.o.g.position.clone().sub(player.position).setY(0).normalize().dot(forward)>.15).sort((a,b)=>a.d-b.d)[0]?.o;if(officer){raiseWanted(.35,'Officer attacked');officer.health--;const away=officer.g.position.clone().sub(player.position);away.y=0;away.normalize();officer.g.position.addScaledVector(away,1.15);arcadeBurst(officer.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(officer.health<=0){cashDrop();officer.down=true;officer.respawn=18;officer.knockTimer=1.1;officer.g.rotation.x=Math.PI/2;officer.g.position.y=.04;notice('Officer temporarily taken out')}return}let target=null,best=3.2;for(const n of people){if(n.down)continue;const offset=n.g.position.clone().sub(player.position);offset.y=0;const d=offset.length();if(d<.01||d>best)continue;if(offset.normalize().dot(forward)<.15)continue;best=d;target=n}if(!target)return;if(policeWitnessed(player.position))raiseWanted(.65,'Assault reported');target.health--;const away=target.g.position.clone().sub(player.position);away.y=0;away.normalize();target.hitVel.addScaledVector(away,8);target.hitTimer=.5;arcadeBurst(target.g.position.clone().add(new THREE.Vector3(0,1.1,0)));if(target.health<=0)knockOutPedestrian(target)}
 function nearestCar(){let best=null,dist=5;for(const c of cars){if(c.destroyed||!c.group.visible||(c===myCar&&inCar))continue;const d=c.group.position.distanceTo(player.position);if(d<dist){best=c;dist=d}}return best}
 function interact(){if(inCar){
  const exiting=inCar,side=new THREE.Vector3(1,0,0).applyAxisAngle(new THREE.Vector3(0,1,0),exiting.group.rotation.y);
@@ -525,7 +545,11 @@ function moveInputActive(){return !!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD)
 function cityName(p){if(p.z<-125)return' SEABRIGHT BEACH';if(Math.abs(p.x)<55&&p.z>45)return'DOWNTOWN';if(p.z>145)return'NORTH PARK';if(Math.abs(p.x)>150)return'WESTSIDE';return'SEABRIGHT • DOWNTOWN'}
 let trafficClock=0;const clock=new THREE.Clock();
 function update(dt){
- trafficClock+=dt;if($('bigMap').style.display==='flex'&&!mapDrag)drawBigMap();
+ trafficClock+=dt;
+ if(inCar&&!inCar.aircraft&&inCar.group.position.x>GARAGE.minX&&inCar.group.position.x<GARAGE.maxX&&inCar.group.position.z>GARAGE.minZ&&inCar.group.position.z<GARAGE.maxZ&&Math.abs(inCar.speed||0)<2){
+  if(inCar.health<100){inCar.health=100;inCar.destroyed=false;inCar.crashed=false;inCar.crashCooldown=0;notice('Vehicle repaired')}
+ }
+if($('bigMap').style.display==='flex'&&!mapDrag)drawBigMap();
  const responseActive=wantedLevel>=2;
  if(wantedLevel>=6&&!armyTankDeployed){const target=inCar?inCar.group.position:player.position;const ahead=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));armyTank.position.set(target.x+ahead.x*32,terrainHeight(target.x+ahead.x*32,target.z+ahead.z*32)+.08,target.z+ahead.z*32);armyTank.rotation.y=yaw;armyTankDeployed=true;notice('ARMY RESPONSE DEPLOYED');}
  if(wantedLevel<6)armyTankDeployed=false;
